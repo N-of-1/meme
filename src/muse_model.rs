@@ -332,8 +332,10 @@ where
 
 /// Average the raw values
 pub fn average_from_front_electrodes(x: &[f32; 4]) -> f32 {
+    let base = std::f32::consts::E;
+    (base.powf(x[1]) + base.powf(x[2])) / 2.0
     //(x[0] + x[1] + x[2] + x[3]) / 4.0
-    (x[1] + x[2]) / 2.0
+    //(x[1] + x[2]) / 2.0
 }
 
 impl MuseModel {
@@ -556,7 +558,7 @@ impl MuseModel {
     /// Front assymetry- higher values mean more positive mood
     fn front_assymetry(&self) -> f32 {
         let base = std::f32::consts::E;
-        base.powf(self.alpha[AF7] - self.alpha[AF8])
+        base.powf(self.alpha[AF8] - self.alpha[AF7])
     }
 
     /// Positive-negative balance of emotion
@@ -567,9 +569,9 @@ impl MuseModel {
     /// Level of emotional intensity based on other, more primitive values
     pub fn calc_abolute_arousal(&self) -> f32 {
         let base = std::f32::consts::E;
-        let posterior_alpha = (self.alpha[TP9] + self.alpha[TP10]) / 2.0;
-        let posterior_theta = (self.theta[TP9] + self.theta[AF7]) / 2.0;
-        base.powf(posterior_alpha - posterior_theta)
+        let frontal_apha = (base.powf(self.alpha[AF7]) + base.powf(self.alpha[AF8])) / 2.0;
+        let frontal_theta = (base.powf(self.theta[AF7]) + base.powf(self.theta[AF8])) / 2.0;
+        frontal_theta / (frontal_apha + 1e-6)
     }
 
     /// Calculate the current arousal value and add it to the length-limited history
