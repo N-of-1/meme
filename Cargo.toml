@@ -15,12 +15,12 @@ log4rs = "0.10"
 csv = "1.1"
 
 # Uncomment this block unless targeting ARM
-#quicksilver = {git = "https://github.com/paulirotta/quicksilver.git", branch="image_fix_and_add"}
-#mandala = {git = "https://github.com/N-of-1/mandala.git", branch="master"}
+quicksilver = {git = "https://github.com/paulirotta/quicksilver.git", branch="image_fix_and_add"}
+mandala = {git = "https://github.com/N-of-1/mandala.git", branch="master"}
 
 # Uncomment this block if targeting ARM
-quicksilver = {git = "https://github.com/paulirotta/quicksilver.git", branch="arm_image_fix_and_add"}
-mandala = {git = "https://github.com/N-of-1/mandala.git", branch="arm"}
+#quicksilver = {git = "https://github.com/paulirotta/quicksilver.git", branch="arm_image_fix_and_add"}
+#mandala = {git = "https://github.com/N-of-1/mandala.git", branch="arm"}
 
 [profile.release]
 opt-level = 3
