@@ -204,6 +204,12 @@ struct AppState {
     local_frame: u64,
 }
 
+fn breathing_sinusoid_10Hz(f32: current_time) -> f32 {
+    let pi:f32 = std::f32::consts::PI;
+    let sin: f32 = (0.2f32*pi).sin();
+    sin/2.0f32 + 0.5f32
+} 
+
 impl AppState {
     // Perform any shutdown actions
     // Do not call this directly to end the app. Instead call window.close();
