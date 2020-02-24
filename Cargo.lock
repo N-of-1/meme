@@ -1534,17 +1534,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3728d817d99e5ac407411fa471ff9800a778d88a24685968b36824eaf4bee400"
 
 [[package]]
-name = "meme-machine-database"
-version = "0.2.0"
-source = "git+https://github.com/N-of-1/meme-machine-database.git#3b20d2151463c6666c46c35268913a7db35b509d"
-dependencies = [
- "diesel",
- "dotenv",
-]
-
-[[package]]
-name = "meme-quicksilver"
-version = "0.9.0"
+name = "meme"
+version = "0.10.0"
 dependencies = [
  "arr_macro",
  "csv",
@@ -1560,6 +1551,15 @@ dependencies = [
  "svg",
  "web_logger",
  "ws",
+]
+
+[[package]]
+name = "meme-machine-database"
+version = "0.2.0"
+source = "git+https://github.com/N-of-1/meme-machine-database.git#3b20d2151463c6666c46c35268913a7db35b509d"
+dependencies = [
+ "diesel",
+ "dotenv",
 ]
 
 [[package]]
