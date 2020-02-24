@@ -77,7 +77,7 @@ const FONT_GRAPH_LABEL_SIZE: f32 = 40.0;
 const FONT_EEG_LABEL_SIZE: f32 = 30.0;
 
 const SOUND_CLICK: &str = "click.ogg";
-const SOUND_BLAH: &str = "blah.ogg";
+const SOUND_GUIDANCE: &str = "Meet Your Mind Leo's voice 200224.mp3";
 
 const STR_TITLE: &str = "Meme Machine";
 const STR_HELP_TEXT: &str = "First relax and watch your mind calm\n\nYou will then be shown some images. Press the left and right images to tell us if they are\nfamiliar and how they make you feel.";
@@ -274,7 +274,7 @@ impl State for AppState {
 
         let logo = Asset::new(Image::load(IMAGE_LOGO));
         let sound_click = Asset::new(Sound::load(SOUND_CLICK));
-        let sound_blah = Asset::new(Sound::load(SOUND_BLAH));
+        let sound_blah = Asset::new(Sound::load(SOUND_GUIDANCE));
         let (rx_eeg, muse_model) = muse_model::MuseModel::new();
         let mandala_valence_state_open = MandalaState::new(
             COLOR_VALENCE_MANDALA_OPEN,
@@ -531,14 +531,15 @@ impl State for AppState {
                     self.draw_mandala(window);
                     if self.local_frame < IMAGE_DURATION_FRAMES {
                         if self.image_index <= IMAGE_SET_SIZE {
-                            self.negative_images.draw(self.image_index, window);
+                            self.negative_images
+                                .draw(self.image_index, window);
                         } 
                         else if self.image_index <= IMAGE_SET_SIZE * 2 {
                             self.positive_images
                                 .draw(self.image_index - IMAGE_SET_SIZE, window);
                         }
                         //else {
-                            
+
                         //}
 
                         self.local_frame += 1;
