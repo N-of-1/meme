@@ -18,6 +18,7 @@ extern crate mandala;
 extern crate num_traits;
 extern crate quicksilver;
 
+use crate::eeg_view::ImageSet;
 use arr_macro::arr;
 use csv::Writer;
 use eeg_view::EegViewState;
@@ -117,31 +118,32 @@ const COLOR_BUTTON: Color = COLOR_NOF1_DARK_BLUE;
 const COLOR_BUTTON_PRESSED: Color = COLOR_NOF1_LIGHT_BLUE;
 const COLOR_EMOTION: Color = Color::YELLOW;
 const COLOR_VALENCE_MANDALA_CLOSED: Color = Color {
-    // Turqoise, translucent, Positive smoother more open
-    r: 64.0 / 256.0,
-    g: 224.0 / 256.0,
-    b: 208.0 / 256.0,
-    a: 0.5,
+    // Purple, positive
+    r: 0.415,
+    g: 0.051,
+    b: 0.67,
+    a: 0.8,
 };
+
 const COLOR_VALENCE_MANDALA_OPEN: Color = Color {
-    // Crimson, Negative spiky emotion
+    // Crimson, negative
     r: 220.0 / 256.0,
     g: 20.0 / 256.0,
     b: 60.0 / 256.0,
-    a: 1.0,
+    a: 0.85,
 };
 const COLOR_AROUSAL_MANDALA_CLOSED: Color = Color {
-    // Dark purple, translucent, low arousal
-    r: 75.0 / 256.0,
-    g: 48.0 / 255.0,
-    b: 165.0 / 255.0,
-    a: 0.4,
+    //Blue, low arousal
+    r: 189. / 256.,
+    g: 247. / 256.,
+    b: 255. / 256.,
+    a: 0.7,
 };
 const COLOR_AROUSAL_MANDALA_OPEN: Color = Color {
-    // Orange, opaque, high arousal
-    r: 1.0,
-    g: 0.67,
-    b: 0.0,
+    // yellow orange, Low arousal 255, 174, 66
+    r: 255.0 / 256.0,
+    g: 174.0 / 256.0,
+    b: 66.0 / 256.0,
     a: 1.0,
 };
 
@@ -194,6 +196,10 @@ struct AppState {
     muse_model: MuseModel,
     eeg_view_state: EegViewState,
     _rx_eeg: Receiver<(Duration, muse_model::MuseMessageType)>,
+    positive_images: ImageSet,
+    negative_images: ImageSet,
+    image_index: usize,
+    local_frame: u64,
 }
 
 impl AppState {
@@ -272,13 +278,13 @@ impl State for AppState {
             COLOR_VALENCE_MANDALA_OPEN,
             Transform::rotate(90),
             Transform::translate((50.0, 0.0)),
-            Transform::scale((1.0, 1.0)),
+            Transform::scale((0.85, 0.95)),
         );
         let mandala_valence_state_closed = MandalaState::new(
             COLOR_VALENCE_MANDALA_CLOSED,
             Transform::rotate(0.0),
             Transform::translate((0.0, 0.0)),
-            Transform::scale((0.1, 1.0)),
+            Transform::scale((0.8, 0.65)),
         );
         let mut mandala_valence = Mandala::new(
             MANDALA_VALENCE_PETAL_SVG_NAME,
@@ -291,21 +297,21 @@ impl State for AppState {
         );
         let mandala_arousal_state_open = MandalaState::new(
             COLOR_AROUSAL_MANDALA_OPEN,
-            Transform::rotate(5),
-            Transform::translate((0.0, 0.0)),
-            Transform::scale((0.4, 0.8)),
+            Transform::rotate(60),
+            Transform::translate((35.0, 0.0)),
+            Transform::scale((0.85, 0.75)),
         );
         let mandala_arousal_state_closed = MandalaState::new(
             COLOR_AROUSAL_MANDALA_CLOSED,
-            Transform::rotate(90.0),
+            Transform::rotate(0.0),
             Transform::translate((0.0, 0.0)),
-            Transform::scale((0.2, 1.0)),
+            Transform::scale((1., 1.)),
         );
         let mut mandala_arousal = Mandala::new(
             MANDALA_AROUSAL_PETAL_SVG_NAME,
             MANDALA_CENTER,
             MANDALA_SCALE,
-            20,
+            12,
             mandala_arousal_state_open,
             mandala_arousal_state_closed,
             0.0,
@@ -316,6 +322,10 @@ impl State for AppState {
         let eeg_view_state = EegViewState::new();
         let start_time = Instant::now();
         //println!("Start instant: {:?}", start_time);
+        let positive_images = ImageSet::new(r#"positive-images//p"#);
+        let negative_images = ImageSet::new(r#"negative-images//p"#);
+        let image_index: usize = 0;
+        let local_frame: u64 = 0;
 
         Ok(AppState {
             frame_count: 0,
@@ -332,6 +342,10 @@ impl State for AppState {
             eeg_view_state,
             _rx_eeg: rx_eeg,
             muse_model,
+            positive_images,
+            negative_images,
+            image_index,
+            local_frame,
         })
     }
 
@@ -511,7 +525,23 @@ impl State for AppState {
         // self.right_button_color = COLOR_BUTTON;
         } else if self.frame_count < FRAME_SETTLE {
             match self.muse_model.display_type {
-                DisplayType::Mandala => self.draw_mandala(window),
+                DisplayType::Mandala => {
+                    self.draw_mandala(window);
+                    if self.local_frame < 30u64 {
+                        if self.image_index <= 24usize {
+                            self.positive_images.draw(self.image_index, window);
+                        } else {
+                            self.negative_images
+                                .draw(self.image_index - 24usize, window);
+                        }
+                        self.local_frame += 1;
+                    } else {
+                        println!("ELSE: {}", self.local_frame);
+                        self.local_frame *= 0;
+                        self.image_index += 1 as usize;
+                    }
+                }
+
                 _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
             }
         } else if self.frame_count < FRAME_MEME {
