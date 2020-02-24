@@ -16,11 +16,11 @@ csv = "1.1"
 
 # Uncomment this block unless targeting ARM
 quicksilver = {git = "https://github.com/paulirotta/quicksilver.git", branch="image_fix_and_add"}
-mandala-quicksilver = {git = "https://github.com/N-of-1/mandala-quicksilver.git", branch="mandala_transitions"}
+mandala = {git = "https://github.com/N-of-1/mandala.git", branch="master"}
 
 # Uncomment this block if targeting ARM
 #quicksilver = {git = "https://github.com/paulirotta/quicksilver.git", branch="arm_image_fix_and_add"}
-#mandala-quicksilver = {git = "https://github.com/N-of-1/mandala-quicksilver.git", branch="arm_mandala_transitions"}
+#mandala = {git = "https://github.com/N-of-1/mandala.git", branch="arm"}
 
 [profile.release]
 opt-level = 3

@@ -14,7 +14,7 @@ extern crate web_logger;
 extern crate nannou_osc;
 
 extern crate arr_macro;
-extern crate mandala_quicksilver;
+extern crate mandala;
 extern crate num_traits;
 extern crate quicksilver;
 
@@ -22,7 +22,7 @@ use arr_macro::arr;
 use csv::Writer;
 use eeg_view::EegViewState;
 use log::{error, info};
-use mandala_quicksilver::{Mandala, MandalaState};
+use mandala::{Mandala, MandalaState};
 use muse_model::{DisplayType, MuseModel};
 use quicksilver::{
     combinators::result,
@@ -35,7 +35,6 @@ use quicksilver::{
     sound::Sound,
     Future, Result,
 };
-use std::error::Error;
 use std::fs::File;
 use std::sync::mpsc::Receiver;
 use std::time::{Duration, Instant};
