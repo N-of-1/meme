@@ -112,7 +112,7 @@ const COLOR_NOF1_TURQOISE: Color = Color {
     b: 200. / 256.,
     a: 1.0,
 };
-const COLOR_BACKGROUND: Color = COLOR_GREY;
+const COLOR_BACKGROUND: Color = Color::BLACK;
 const COLOR_TITLE: Color = COLOR_NOF1_DARK_BLUE;
 const COLOR_EEG_LABEL: Color = COLOR_NOF1_DARK_BLUE;
 const COLOR_TEXT: Color = Color::BLACK;
