@@ -2,11 +2,11 @@
   <img src="images/nof1-logo.png">
 </p>
 
-# meme-quicksilver
+# meme
 
 master
-[![Master branch build status](https://github.com/N-of-1/meme-quicksilver/workflows/Rust/badge.svg?branch=master)](https://github.com/N-of-1/meme-quicksilver/actions) &emsp; dev
-[![Test branch build status](https://github.com/N-of-1/meme-quicksilver/workflows/Rust/badge.svg?branch=dev)](https://github.com/N-of-1/meme-quicksilver/actions)
+[![Master branch build status](https://github.com/N-of-1/meme/workflows/Rust/badge.svg?branch=master)](https://github.com/N-of-1/meme/actions) &emsp; dev
+[![Test branch build status](https://github.com/N-of-1/meme/workflows/Rust/badge.svg?branch=dev)](https://github.com/N-of-1/meme/actions)
 
 UI for meme machine demo using the quicksilver gaming library
 

@@ -315,7 +315,7 @@ impl State for AppState {
 
         let eeg_view_state = EegViewState::new();
         let start_time = Instant::now();
-        println!("Start instant: {:?}", start_time);
+        //println!("Start instant: {:?}", start_time);
 
         Ok(AppState {
             frame_count: 0,
@@ -458,10 +458,7 @@ impl State for AppState {
 
     // This is called FPS times per second
     fn draw(&mut self, window: &mut Window) -> Result<()> {
-        let background_color = match self.frame_count < FRAME_TITLE {
-            true => Color::BLACK,
-            false => COLOR_BACKGROUND,
-        };
+        let background_color = COLOR_BACKGROUND;
         window.clear(background_color)?;
 
         if self.frame_count == FRAME_INTRO {
