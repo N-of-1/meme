@@ -60,9 +60,10 @@ const FPS: u64 = 60; // Frames per second
 const UPS: u64 = 60; // Updates per second
 const FRAME_TITLE: u64 = 4 * FPS;
 const FRAME_INTRO: u64 = FRAME_TITLE + 1 * FPS;
-const FRAME_EXPERIENCE: u64 = FRAME_INTRO + 12000 * FPS;
-const FRAME_MEME: u64 = FRAME_EXPERIENCE + 4 * FPS;
-
+const FRAME_NEGATIVE: u64 = FRAME_INTRO + 120 * FPS;
+const FRAME_BREATHING: u64 = FRAME_NEGATIVE + 120 * FPS;
+const FRAME_POSITIVE: u64 = FRAME_BREATHING + 120 * FPS;
+const FRAME_FREE_RIDE: u64 = FRAME_POSITIVE + 120 * FPS;
 const IMAGE_LOGO: &str = "Nof1-logo.png";
 const MANDALA_VALENCE_PETAL_SVG_NAME: &str = "mandala_valence_petal.svg";
 const MANDALA_AROUSAL_PETAL_SVG_NAME: &str = "mandala_arousal_petal.svg";
@@ -149,6 +150,20 @@ const COLOR_AROUSAL_MANDALA_OPEN: Color = Color {
     b: 66.0 / 256.0,
     a: 1.0,
 };
+const COLOR_BREATH_MANDALA_CLOSED: Color = Color {
+    //Blue, transparent, breath out
+    r: 10. / 256.,
+    g: 10. / 256.,
+    b: 256. / 256.,
+    a: 0.9,
+};
+const COLOR_BREATH_MANDALA_OPEN: Color = Color {
+    // Green opaque, breath in
+    r: 10.0 / 256.0,
+    g: 256.0 / 256.0,
+    b: 10.0 / 256.0,
+    a: 0.0,
+};
 
 const BUTTON_WIDTH: f32 = 200.0;
 const BUTTON_HEIGHT: f32 = 50.0;
@@ -202,16 +217,17 @@ struct AppState {
     _rx_eeg: Receiver<(Duration, muse_model::MuseMessageType)>,
     positive_images: ImageSet,
     negative_images: ImageSet,
-    image_index: usize,
+    image_index_positive: usize,
+    image_index_negative: usize,
     local_frame: u64,
     mandala_on: bool,
 }
 
-fn breathing_sinusoid_10Hz(f32: current_time) -> f32 {
-    let pi:f32 = std::f32::consts::PI;
-    let sin: f32 = (0.2f32*pi).sin();
-    sin/2.0f32 + 0.5f32
-} 
+fn breathing_sinusoid_10sec(current_time: f32) -> f32 {
+    let pi: f32 = std::f32::consts::PI;
+    let sin: f32 = (current_time * 0.2f32 * pi).sin();
+    sin / 2.0f32 + 0.5f32
+}
 
 impl AppState {
     // Perform any shutdown actions
@@ -256,11 +272,13 @@ impl AppState {
         window.mesh().extend(&mesh);
     }
 
-    fn draw_breath_mandala(&mut self, window: &mut Window) {
+    fn draw_breath_mandala(&mut self, current_time: f32, window: &mut Window) {
         let mut mesh = Mesh::new();
-
+        let breath_state = breathing_sinusoid_10sec(current_time);
         let mut shape_renderer = ShapeRenderer::new(&mut mesh, Color::RED);
         let seconds_since_start = self.seconds_since_start();
+        self.mandala_breath
+            .start_transition(current_time, 0.01, breath_state);
         self.mandala_breath
             .draw(seconds_since_start, &mut shape_renderer);
         window.mesh().extend(&mesh);
@@ -332,16 +350,16 @@ impl State for AppState {
             Transform::scale((1., 1.)),
         );
         let mandala_breath_state_open = MandalaState::new(
-            COLOR_AROUSAL_MANDALA_OPEN,
-            Transform::rotate(60),
-            Transform::translate((35.0, 0.0)),
-            Transform::scale((0.85, 0.75)),
+            COLOR_BREATH_MANDALA_OPEN,
+            Transform::rotate(30),
+            Transform::translate((45.0, 0.0)),
+            Transform::scale((1.0, 0.50)),
         );
         let mandala_breath_state_closed = MandalaState::new(
-            COLOR_AROUSAL_MANDALA_CLOSED,
+            COLOR_BREATH_MANDALA_CLOSED,
             Transform::rotate(0.0),
             Transform::translate((0.0, 0.0)),
-            Transform::scale((1., 1.)),
+            Transform::scale((0.3, 0.1)),
         );
         let mut mandala_arousal = Mandala::new(
             MANDALA_AROUSAL_PETAL_SVG_NAME,
@@ -353,7 +371,7 @@ impl State for AppState {
             0.0,
         );
         let mut mandala_breath = Mandala::new(
-            MANDALA_AROUSAL_PETAL_SVG_NAME,
+            MANDALA_BREATH_PETAL_SVG_NAME,
             MANDALA_CENTER,
             MANDALA_SCALE,
             12,
@@ -369,7 +387,8 @@ impl State for AppState {
         //println!("Start instant: {:?}", start_time);
         let positive_images = ImageSet::new(r#"positive-images//p"#);
         let negative_images = ImageSet::new(r#"negative-images//n"#);
-        let image_index: usize = 0;
+        let image_index_positive: usize = 0;
+        let image_index_negative: usize = 0;
         let local_frame: u64 = 0;
         let mandala_on = true;
 
@@ -391,7 +410,8 @@ impl State for AppState {
             muse_model,
             positive_images,
             negative_images,
-            image_index,
+            image_index_positive,
+            image_index_negative,
             local_frame,
             mandala_on,
         })
@@ -481,25 +501,20 @@ impl State for AppState {
             self.muse_model.receive_packets();
         if self.frame_count > FRAME_TITLE {
             let current_time = self.seconds_since_start();
-            // println!("Time: {}", current_time);
             if let Some(normalized_valence) = normalized_valence_option {
-                // println!("Normalized valence: {}", normalized_valence);
                 if normalized_valence.is_finite() {
                     self.mandala_valence.start_transition(
                         current_time,
                         MANDALA_TRANSITION_DURATION,
-                        // bound_normalized_value(normalized_valence),
                         normalized_valence,
                     );
                 }
             }
             if let Some(normalized_arousal) = normalized_arousal_option {
-                // println!("Normalized arousal: {}", normalized_arousal);
                 if normalized_arousal.is_finite() {
                     self.mandala_arousal.start_transition(
                         current_time,
                         MANDALA_TRANSITION_DURATION,
-                        // bound_normalized_value(normalized_arousal),
                         normalized_arousal,
                     );
                 }
@@ -571,65 +586,94 @@ impl State for AppState {
         //     Ok(())
         // })?;
         // self.right_button_color = COLOR_BUTTON;
-        } else if self.frame_count < FRAME_EXPERIENCE {
+        } else if self.frame_count < FRAME_NEGATIVE {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
                     self.draw_mandala(self.mandala_on, window);
                     if self.local_frame < IMAGE_DURATION_FRAMES {
-                        if self.image_index <= IMAGE_SET_SIZE {
-                            self.negative_images.draw(self.image_index, window);
-                        } else if self.image_index <= IMAGE_SET_SIZE * 2 {
-                            self.positive_images
-                                .draw(self.image_index - IMAGE_SET_SIZE, window);
-                        }
+                        self.negative_images.draw(self.image_index_negative, window);
                         self.local_frame += 1;
                     } else if self.local_frame < IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL {
                         //TODO Interstitial interval
                         self.local_frame += 1;
-                    } else if self.image_index == 24
-                        && self.local_frame == IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL
-                    {
-                        self.mandala_on = false;
-                        println!("Breathing block!");
-                        self.draw_breath_mandala(window);
                     } else {
                         self.mandala_on = true;
                         //println!("ELSE: {}", self.local_frame);
                         self.local_frame *= 0;
-                        self.image_index += 1 as usize;
+                        self.image_index_negative += 1 as usize;
                     }
                 }
 
                 _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
             }
-        } else if self.frame_count < FRAME_MEME {
-            // LEFT BUTTON
-            let left_color = self.left_button_color;
-            self.sound_click.execute(|_| {
-                window.draw(&RECT_LEFT_BUTTON, Col(left_color));
-                Ok(())
-            })?;
-            self.left_button_color = COLOR_BUTTON;
+        } else if self.frame_count < FRAME_BREATHING {
+            self.mandala_on = false;
+            match self.muse_model.display_type {
+                DisplayType::Mandala => {
+                    self.draw_mandala(self.mandala_on, window);
+                    // println!("Breathing block!");
+                    self.draw_breath_mandala(self.seconds_since_start(), window);
+                    self.mandala_on = true;
+                    self.local_frame = 0;
+                }
+                _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
+            }
+        } else if self.frame_count < FRAME_POSITIVE {
+            match self.muse_model.display_type {
+                DisplayType::Mandala => {
+                    self.draw_mandala(self.mandala_on, window);
+                    if self.local_frame < IMAGE_DURATION_FRAMES {
+                        self.positive_images.draw(self.image_index_positive, window);
+                        self.local_frame += 1;
+                    } else if self.local_frame < IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL {
+                        //TODO Interstitial interval
+                        self.local_frame += 1;
+                    } else {
+                        self.mandala_on = true;
+                        //println!("ELSE: {}", self.local_frame);
+                        self.local_frame *= 0;
+                        self.image_index_positive += 1 as usize;
+                    }
+                }
 
-            // RIGHT BUTTON
-            let right_color = self.right_button_color;
-            self.sound_click.execute(|_| {
-                window.draw(&RECT_RIGHT_BUTTON, Col(right_color));
-                Ok(())
-            })?;
-            self.right_button_color = COLOR_BUTTON;
-        } else {
-            // LOGO
-            self.logo.execute(|image| {
-                window.draw(
-                    &image
-                        .area()
-                        .with_center((SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 2.0)),
-                    Img(&image),
-                );
-                Ok(())
-            })?;
+                _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
+            }
+        } else if self.frame_count < FRAME_FREE_RIDE {
+            match self.muse_model.display_type {
+                DisplayType::Mandala => {
+                    self.draw_mandala(self.mandala_on, window);
+                }
+                _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
+            }
         }
+
+        //         // LEFT BUTTON
+        //         let left_color = self.left_button_color;
+        //         self.sound_click.execute(|_| {
+        //             window.draw(&RECT_LEFT_BUTTON, Col(left_color));
+        //             Ok(())
+        //         })?;
+        //         self.left_button_color = COLOR_BUTTON;
+
+        //         // RIGHT BUTTON
+        //         let right_color = self.right_button_color;
+        //         self.sound_click.execute(|_| {
+        //             window.draw(&RECT_RIGHT_BUTTON, Col(right_color));
+        //             Ok(())
+        //         })?;
+        //         self.right_button_color = COLOR_BUTTON;
+        //     } else {
+        //         // LOGO
+        //         self.logo.execute(|image| {
+        //             window.draw(
+        //                 &image
+        //                     .area()
+        //                     .with_center((SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 2.0)),
+        //                 Img(&image),
+        //             );
+        //             Ok(())
+        //         })?;
+        //     }
 
         self.frame_count = self.frame_count + 1;
         if self.frame_count == std::u64::MAX {
