@@ -323,7 +323,7 @@ impl State for AppState {
         let start_time = Instant::now();
         //println!("Start instant: {:?}", start_time);
         let positive_images = ImageSet::new(r#"positive-images//p"#);
-        let negative_images = ImageSet::new(r#"negative-images//p"#);
+        let negative_images = ImageSet::new(r#"negative-images//n"#);
         let image_index: usize = 0;
         let local_frame: u64 = 0;
 
