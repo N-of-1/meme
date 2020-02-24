@@ -50,7 +50,8 @@ mod muse_packet;
 const SCREEN_SIZE: (f32, f32) = (1920.0, 1200.0);
 #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
 const SCREEN_SIZE: (f32, f32) = (1280.0, 650.0);
-
+const IMAGE_DURATION_FRAMES: u64 = 300;
+const IMAGE_SET_SIZE: usize = 24;
 const MANDALA_CENTER: (f32, f32) = (SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 2.0);
 const MANDALA_SCALE: (f32, f32) = (3.0, 3.0); // Adjust size of Mandala vs screen
 
@@ -527,13 +528,18 @@ impl State for AppState {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
                     self.draw_mandala(window);
-                    if self.local_frame < 30u64 {
-                        if self.image_index <= 24usize {
+                    if self.local_frame < IMAGE_DURATION_FRAMES {
+                        if self.image_index <= IMAGE_SET_SIZE {
                             self.positive_images.draw(self.image_index, window);
-                        } else {
+                        } 
+                        else if self.image_index <= IMAGE_SET_SIZE * 2 {
                             self.negative_images
-                                .draw(self.image_index - 24usize, window);
+                                .draw(self.image_index - IMAGE_SET_SIZE, window);
                         }
+                        //else {
+                            
+                        //}
+
                         self.local_frame += 1;
                     } else {
                         println!("ELSE: {}", self.local_frame);
