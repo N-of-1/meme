@@ -50,8 +50,8 @@ mod muse_packet;
 const SCREEN_SIZE: (f32, f32) = (1920.0, 1200.0);
 #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
 const SCREEN_SIZE: (f32, f32) = (1280.0, 650.0);
-const IMAGE_DURATION_FRAMES: u64 = 30;
-const INTER_IMAGE_INTERVAL: u64 = 9;
+const IMAGE_DURATION_FRAMES: u64 = 300;
+const INTER_IMAGE_INTERVAL: u64 = 90;
 const IMAGE_SET_SIZE: usize = 24;
 const MANDALA_CENTER: (f32, f32) = (SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 2.0);
 const MANDALA_SCALE: (f32, f32) = (3.0, 3.0); // Adjust size of Mandala vs screen
@@ -60,12 +60,13 @@ const FPS: u64 = 60; // Frames per second
 const UPS: u64 = 60; // Updates per second
 const FRAME_TITLE: u64 = 4 * FPS;
 const FRAME_INTRO: u64 = FRAME_TITLE + 1 * FPS;
-const FRAME_SETTLE: u64 = FRAME_INTRO + 12000 * FPS;
-const FRAME_MEME: u64 = FRAME_SETTLE + 4 * FPS;
+const FRAME_EXPERIENCE: u64 = FRAME_INTRO + 12000 * FPS;
+const FRAME_MEME: u64 = FRAME_EXPERIENCE + 4 * FPS;
 
 const IMAGE_LOGO: &str = "Nof1-logo.png";
 const MANDALA_VALENCE_PETAL_SVG_NAME: &str = "mandala_valence_petal.svg";
 const MANDALA_AROUSAL_PETAL_SVG_NAME: &str = "mandala_arousal_petal.svg";
+const MANDALA_BREATH_PETAL_SVG_NAME: &str = "mandala_breath_petal.svg";
 /// The visual slew time from current value to newly set value. Keep in mind that the newly set value is already smoothed, so this number should be small to provide consinuous interpolation between new values, not large to provide an additional layer of (less carefully controlled) smoothing filter.
 const MANDALA_TRANSITION_DURATION: f32 = 0.5;
 
@@ -82,7 +83,7 @@ const SOUND_GUIDANCE: &str = "Meet Your Mind Leo's voice 200224.mp3";
 const STR_TITLE: &str = "Meme Machine";
 const STR_HELP_TEXT: &str = "First relax and watch your mind calm\n\nYou will then be shown some images. Press the left and right images to tell us if they are\nfamiliar and how they make you feel.";
 
-const COLOR_GREY: Color = Color {
+const _COLOR_GREY: Color = Color {
     r: 0.5,
     g: 0.5,
     b: 0.5,
@@ -195,6 +196,7 @@ struct AppState {
     right_button_color: Color,
     mandala_valence: Mandala,
     mandala_arousal: Mandala,
+    mandala_breath: Mandala,
     muse_model: MuseModel,
     eeg_view_state: EegViewState,
     _rx_eeg: Receiver<(Duration, muse_model::MuseMessageType)>,
@@ -202,6 +204,7 @@ struct AppState {
     negative_images: ImageSet,
     image_index: usize,
     local_frame: u64,
+    mandala_on: bool,
 }
 
 fn breathing_sinusoid_10Hz(f32: current_time) -> f32 {
@@ -238,7 +241,10 @@ impl AppState {
         self.start_time.elapsed().as_nanos() as f32 / 1000000000.0
     }
 
-    fn draw_mandala(&mut self, window: &mut Window) {
+    fn draw_mandala(&mut self, mandala_on: bool, window: &mut Window) {
+        if !mandala_on {
+            return;
+        }
         let mut mesh = Mesh::new();
 
         let mut shape_renderer = ShapeRenderer::new(&mut mesh, Color::RED);
@@ -246,6 +252,16 @@ impl AppState {
         self.mandala_valence
             .draw(seconds_since_start, &mut shape_renderer);
         self.mandala_arousal
+            .draw(seconds_since_start, &mut shape_renderer);
+        window.mesh().extend(&mesh);
+    }
+
+    fn draw_breath_mandala(&mut self, window: &mut Window) {
+        let mut mesh = Mesh::new();
+
+        let mut shape_renderer = ShapeRenderer::new(&mut mesh, Color::RED);
+        let seconds_since_start = self.seconds_since_start();
+        self.mandala_breath
             .draw(seconds_since_start, &mut shape_renderer);
         window.mesh().extend(&mesh);
     }
@@ -315,6 +331,18 @@ impl State for AppState {
             Transform::translate((0.0, 0.0)),
             Transform::scale((1., 1.)),
         );
+        let mandala_breath_state_open = MandalaState::new(
+            COLOR_AROUSAL_MANDALA_OPEN,
+            Transform::rotate(60),
+            Transform::translate((35.0, 0.0)),
+            Transform::scale((0.85, 0.75)),
+        );
+        let mandala_breath_state_closed = MandalaState::new(
+            COLOR_AROUSAL_MANDALA_CLOSED,
+            Transform::rotate(0.0),
+            Transform::translate((0.0, 0.0)),
+            Transform::scale((1., 1.)),
+        );
         let mut mandala_arousal = Mandala::new(
             MANDALA_AROUSAL_PETAL_SVG_NAME,
             MANDALA_CENTER,
@@ -322,6 +350,15 @@ impl State for AppState {
             12,
             mandala_arousal_state_open,
             mandala_arousal_state_closed,
+            0.0,
+        );
+        let mut mandala_breath = Mandala::new(
+            MANDALA_AROUSAL_PETAL_SVG_NAME,
+            MANDALA_CENTER,
+            MANDALA_SCALE,
+            12,
+            mandala_breath_state_open,
+            mandala_breath_state_closed,
             0.0,
         );
         mandala_valence.start_transition(0.0, 3.0, 0.0);
@@ -334,6 +371,7 @@ impl State for AppState {
         let negative_images = ImageSet::new(r#"negative-images//n"#);
         let image_index: usize = 0;
         let local_frame: u64 = 0;
+        let mandala_on = true;
 
         Ok(AppState {
             frame_count: 0,
@@ -345,6 +383,7 @@ impl State for AppState {
             sound_blah,
             mandala_valence,
             mandala_arousal,
+            mandala_breath,
             left_button_color: COLOR_CLEAR,
             right_button_color: COLOR_CLEAR,
             eeg_view_state,
@@ -354,6 +393,7 @@ impl State for AppState {
             negative_images,
             image_index,
             local_frame,
+            mandala_on,
         })
     }
 
@@ -489,7 +529,7 @@ impl State for AppState {
         }
 
         if self.frame_count < FRAME_TITLE {
-            self.draw_mandala(window);
+            self.draw_mandala(self.mandala_on, window);
 
             // LOGO
             self.logo.execute(|image| {
@@ -531,33 +571,29 @@ impl State for AppState {
         //     Ok(())
         // })?;
         // self.right_button_color = COLOR_BUTTON;
-        } else if self.frame_count < FRAME_SETTLE {
+        } else if self.frame_count < FRAME_EXPERIENCE {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
-                    self.draw_mandala(window);
+                    self.draw_mandala(self.mandala_on, window);
                     if self.local_frame < IMAGE_DURATION_FRAMES {
                         if self.image_index <= IMAGE_SET_SIZE {
-                            self.negative_images
-                                .draw(self.image_index, window);
-                        } 
-                        else if self.image_index <= IMAGE_SET_SIZE * 2 {
+                            self.negative_images.draw(self.image_index, window);
+                        } else if self.image_index <= IMAGE_SET_SIZE * 2 {
                             self.positive_images
                                 .draw(self.image_index - IMAGE_SET_SIZE, window);
                         }
-                        //else {
-
-                        //}
-
                         self.local_frame += 1;
-                    } 
-                    else if self.local_frame < IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL {    
-                    }
-                    
-                    else if self.image_index == 24 && self.local_frame == IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL {    
-                        println!("Breathing block!")
-                    }
-
-                    else {
+                    } else if self.local_frame < IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL {
+                        //TODO Interstitial interval
+                        self.local_frame += 1;
+                    } else if self.image_index == 24
+                        && self.local_frame == IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL
+                    {
+                        self.mandala_on = false;
+                        println!("Breathing block!");
+                        self.draw_breath_mandala(window);
+                    } else {
+                        self.mandala_on = true;
                         //println!("ELSE: {}", self.local_frame);
                         self.local_frame *= 0;
                         self.image_index += 1 as usize;
