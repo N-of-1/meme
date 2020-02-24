@@ -82,7 +82,7 @@ const SOUND_GUIDANCE: &str = "Meet Your Mind Leo's voice 200224.mp3";
 const STR_TITLE: &str = "Meme Machine";
 const STR_HELP_TEXT: &str = "First relax and watch your mind calm\n\nYou will then be shown some images. Press the left and right images to tell us if they are\nfamiliar and how they make you feel.";
 
-const COLOR_GREY: Color = Color {
+const _COLOR_GREY: Color = Color {
     r: 0.5,
     g: 0.5,
     b: 0.5,
@@ -531,10 +531,8 @@ impl State for AppState {
                     self.draw_mandala(window);
                     if self.local_frame < IMAGE_DURATION_FRAMES {
                         if self.image_index <= IMAGE_SET_SIZE {
-                            self.negative_images
-                                .draw(self.image_index, window);
-                        } 
-                        else if self.image_index <= IMAGE_SET_SIZE * 2 {
+                            self.negative_images.draw(self.image_index, window);
+                        } else if self.image_index <= IMAGE_SET_SIZE * 2 {
                             self.positive_images
                                 .draw(self.image_index - IMAGE_SET_SIZE, window);
                         }
@@ -543,15 +541,12 @@ impl State for AppState {
                         //}
 
                         self.local_frame += 1;
-                    } 
-                    else if self.local_frame < IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL {    
-                    }
-                    
-                    else if self.image_index == 24 && self.local_frame == IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL {    
+                    } else if self.local_frame < IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL {
+                    } else if self.image_index == 24
+                        && self.local_frame == IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL
+                    {
                         println!("Breathing block!")
-                    }
-
-                    else {
+                    } else {
                         //println!("ELSE: {}", self.local_frame);
                         self.local_frame *= 0;
                         self.image_index += 1 as usize;
