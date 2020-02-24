@@ -50,8 +50,8 @@ mod muse_packet;
 const SCREEN_SIZE: (f32, f32) = (1920.0, 1200.0);
 #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
 const SCREEN_SIZE: (f32, f32) = (1280.0, 650.0);
-const IMAGE_DURATION_FRAMES: u64 = 30;
-const INTER_IMAGE_INTERVAL: u64 = 9;
+const IMAGE_DURATION_FRAMES: u64 = 300;
+const INTER_IMAGE_INTERVAL: u64 = 90;
 const IMAGE_SET_SIZE: usize = 24;
 const MANDALA_CENTER: (f32, f32) = (SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 2.0);
 const MANDALA_SCALE: (f32, f32) = (3.0, 3.0); // Adjust size of Mandala vs screen
@@ -60,8 +60,8 @@ const FPS: u64 = 60; // Frames per second
 const UPS: u64 = 60; // Updates per second
 const FRAME_TITLE: u64 = 4 * FPS;
 const FRAME_INTRO: u64 = FRAME_TITLE + 1 * FPS;
-const FRAME_SETTLE: u64 = FRAME_INTRO + 12000 * FPS;
-const FRAME_MEME: u64 = FRAME_SETTLE + 4 * FPS;
+const FRAME_EXPERIENCE: u64 = FRAME_INTRO + 12000 * FPS;
+const FRAME_MEME: u64 = FRAME_EXPERIENCE + 4 * FPS;
 
 const IMAGE_LOGO: &str = "Nof1-logo.png";
 const MANDALA_VALENCE_PETAL_SVG_NAME: &str = "mandala_valence_petal.svg";
@@ -525,7 +525,7 @@ impl State for AppState {
         //     Ok(())
         // })?;
         // self.right_button_color = COLOR_BUTTON;
-        } else if self.frame_count < FRAME_SETTLE {
+        } else if self.frame_count < FRAME_EXPERIENCE {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
                     self.draw_mandala(window);
@@ -536,16 +536,14 @@ impl State for AppState {
                             self.positive_images
                                 .draw(self.image_index - IMAGE_SET_SIZE, window);
                         }
-                        //else {
-
-                        //}
-
                         self.local_frame += 1;
                     } else if self.local_frame < IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL {
+                        //TODO Interstitial interval
+                        self.local_frame += 1;
                     } else if self.image_index == 24
                         && self.local_frame == IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL
                     {
-                        println!("Breathing block!")
+                        println!("Breathing block!");
                     } else {
                         //println!("ELSE: {}", self.local_frame);
                         self.local_frame *= 0;
