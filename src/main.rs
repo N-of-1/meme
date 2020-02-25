@@ -801,7 +801,9 @@ impl State for AppState {
             }
         };
 
-        if self.frame_count > FREE_RIDE_B && self.frame_count < THANK_YOU {
+        if self.frame_count > FREE_RIDE_A
+        /* && self.frame_count < THANK_YOU*/
+        {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
                     self.draw_mandala(self.mandala_on, window);
