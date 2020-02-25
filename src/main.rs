@@ -609,32 +609,48 @@ impl State for AppState {
         let background_color = COLOR_BACKGROUND;
         window.clear(background_color)?;
 
+        const TITLE: u64 = 4 * FPS;
+        const INTRO_A: u64 = TITLE + 25 * FPS; // INTRO
+        const INTRO_B: u64 = INTRO_A + 6 * FPS;
+        const INTRO_C: u64 = INTRO_B + 8 * FPS;
+        const RELAX: u64 = INTRO_C + 40 * FPS;
+        const NEGATIVE_A: u64 = RELAX + 22 * FPS; // TASK 1
+        const NEGATIVE_B: u64 = NEGATIVE_A + 116 * FPS;
+        const BREATHING_A: u64 = NEGATIVE_B + 10 * FPS; // TASK 2
+        const BREATHING_B: u64 = BREATHING_A + 120 * FPS;
+        const POSITIVE_A: u64 = BREATHING_B + 19 * FPS; // TASK 3
+        const POSITIVE_B: u64 = POSITIVE_A + 120 * FPS;
+        const FREE_RIDE_A: u64 = POSITIVE_B + 19 * FPS; // TASK 4
+        const FREE_RIDE_B: u64 = FREE_RIDE_A + 10 * FPS; // (same image)
+        const FREE_RIDE_C: u64 = FREE_RIDE_B + 10 * FPS; // (same image)
+        const THANK_YOU: u64 = FREE_RIDE_C + 9 * FPS; // THANK YOU
+
         // THE NAME AT THE TOP OF THE IF STATEMENT IS THE NAME OF THE PREVIOUS STAGE
         if self.frame_count == TITLE {
             let _result = self.sound_e1.execute(|sound| sound.play());
         }
-        if self.frame_count == NEGATIVE_A {
+        if self.frame_count == INTRO_A {
             let _result = self.sound_e2.execute(|sound| sound.play());
         }
         if self.frame_count == NEGATIVE_A {
             let _result = self.sound_e3.execute(|sound| sound.play());
         }
-        if self.frame_count == NEGATIVE_A {
+        if self.frame_count == NEGATIVE_B {
             let _result = self.sound_e4.execute(|sound| sound.play());
         }
-        if self.frame_count == NEGATIVE_A {
+        if self.frame_count == BREATHING_B {
             let _result = self.sound_e5.execute(|sound| sound.play());
         }
-        if self.frame_count == NEGATIVE_A {
+        if self.frame_count == POSITIVE_A {
             let _result = self.sound_e6.execute(|sound| sound.play());
         }
-        if self.frame_count == NEGATIVE_A {
+        if self.frame_count == POSITIVE_B {
             let _result = self.sound_e7.execute(|sound| sound.play());
         }
-        if self.frame_count == NEGATIVE_A {
+        if self.frame_count == FREE_RIDE_A {
             let _result = self.sound_e8.execute(|sound| sound.play());
         }
-        if self.frame_count == NEGATIVE_A {
+        if self.frame_count == FREE_RIDE_C {
             let _result = self.sound_e9.execute(|sound| sound.play());
         }
 
