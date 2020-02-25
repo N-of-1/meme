@@ -14,6 +14,7 @@ extern crate web_logger;
 extern crate nannou_osc;
 
 extern crate arr_macro;
+extern crate chrono;
 extern crate mandala;
 extern crate num_traits;
 extern crate quicksilver;
@@ -294,8 +295,10 @@ fn bound_normalized_value(normalized: f32) -> f32 {
 
 /// Create a log of values and events collected during a session
 fn create_log_writer(filename: &str) -> Writer<File> {
+    let current_date_time = muse_model::current_date_time_filename_format();
+    let filename_with_date_time = format!("{} {}", current_date_time, filename);
     let writer: Writer<File> =
-        Writer::from_path(filename).expect("Could not open CSV file for writing");
+        Writer::from_path(filename_with_date_time).expect("Could not open CSV file for writing");
 
     writer
 }
