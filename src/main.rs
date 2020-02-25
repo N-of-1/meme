@@ -70,9 +70,8 @@ const POSITIVE_B: u64 = POSITIVE_A + 120 * FPS;
 const FREE_RIDE_AA: u64 = POSITIVE_B + (0.5 * FPS as f32) as u64; // TASK 4
 const FREE_RIDE_AB: u64 = FREE_RIDE_AA + (0.5 * FPS as f32) as u64;
 const FREE_RIDE_AC: u64 = FREE_RIDE_AB + (0.5 * FPS as f32) as u64;
-const FREE_RIDE_AD: u64 = FREE_RIDE_AC + (0.5 * FPS as f32) as u64;
-const FREE_RIDE_AE: u64 = FREE_RIDE_AD + 17 * FPS;
-const FREE_RIDE_B: u64 = FREE_RIDE_AE + 70 * FPS; // (same image)
+const FREE_RIDE_AD: u64 = FREE_RIDE_AC + 17 * FPS;
+const FREE_RIDE_B: u64 = FREE_RIDE_AD + 70 * FPS; // (same image)
 const FREE_RIDE_C: u64 = FREE_RIDE_B + 10 * FPS; // (same image)
 const THANK_YOU: u64 = FREE_RIDE_C + 9 * FPS; // THANK YOU
 
@@ -662,16 +661,14 @@ impl State for AppState {
             //     Some(&mut self.help_)
             // } else if self.frame_count >= POSITIVE_B && self.frame_count < FREE_RIDE_A {
             //     Some(&mut self.help_)
-            // } else if self.frame_count >= FREE_RIDE_AA && self.frame_count < FREE_RIDE_AB {
-            //     Some(&mut self.help_7a)
-            // } else if self.frame_count >= FREE_RIDE_AB && self.frame_count < FREE_RIDE_AC {
-            //     Some(&mut self.help_7a)
-            // } else if self.frame_count >= FREE_RIDE_AC && self.frame_count < FREE_RIDE_AD {
-            //     Some(&mut self.help_7b)
-            // } else if self.frame_count >= FREE_RIDE_AD && self.frame_count < FREE_RIDE_B {
-            //     Some(&mut self.help_7c)
-            // } else if self.frame_count >= FREE_RIDE_B && self.frame_count < FREE_RIDE_C {
-            //     Some(&mut self.help_8)
+            } else if self.frame_count >= FREE_RIDE_AA && self.frame_count < FREE_RIDE_AB {
+                Some(&mut self.help_7a)
+            } else if self.frame_count >= FREE_RIDE_AB && self.frame_count < FREE_RIDE_AC {
+                Some(&mut self.help_7b)
+            } else if self.frame_count >= FREE_RIDE_AC && self.frame_count < FREE_RIDE_B {
+                Some(&mut self.help_7c)
+            } else if self.frame_count >= FREE_RIDE_B && self.frame_count < FREE_RIDE_C {
+                Some(&mut self.help_8)
             } else if self.frame_count >= FREE_RIDE_C {
                 Some(&mut self.help_9)
             } else {
