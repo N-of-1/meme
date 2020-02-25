@@ -28,9 +28,7 @@ use muse_model::{DisplayType, MuseModel};
 use quicksilver::{
     combinators::result,
     geom::{Line, Rectangle, Shape, Transform, Vector},
-    graphics::{
-        Background::Col, Background::Img, Color, Font, FontStyle, Image, Mesh, ShapeRenderer,
-    },
+    graphics::{Background::Img, Color, Font, FontStyle, Image, Mesh, ShapeRenderer},
     input::{ButtonState, GamepadButton, Key, MouseButton},
     lifecycle::{run, Asset, Event, Settings, State, Window},
     sound::Sound,
@@ -52,7 +50,7 @@ const SCREEN_SIZE: (f32, f32) = (1920.0, 1200.0);
 const SCREEN_SIZE: (f32, f32) = (1280.0, 650.0);
 const IMAGE_DURATION_FRAMES: u64 = 300;
 const INTER_IMAGE_INTERVAL: u64 = 90;
-const IMAGE_SET_SIZE: usize = 24;
+const _IMAGE_SET_SIZE: usize = 24;
 const MANDALA_CENTER: (f32, f32) = (SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 2.0);
 const MANDALA_SCALE: (f32, f32) = (3.0, 3.0); // Adjust size of Mandala vs screen
 
@@ -122,7 +120,7 @@ const COLOR_BACKGROUND: Color = Color::BLACK;
 const COLOR_TITLE: Color = COLOR_NOF1_DARK_BLUE;
 const COLOR_EEG_LABEL: Color = COLOR_NOF1_DARK_BLUE;
 const COLOR_TEXT: Color = Color::BLACK;
-const COLOR_BUTTON: Color = COLOR_NOF1_DARK_BLUE;
+const _COLOR_BUTTON: Color = COLOR_NOF1_DARK_BLUE;
 const COLOR_BUTTON_PRESSED: Color = COLOR_NOF1_LIGHT_BLUE;
 const COLOR_EMOTION: Color = Color::YELLOW;
 const COLOR_VALENCE_MANDALA_CLOSED: Color = Color {
@@ -374,7 +372,7 @@ impl State for AppState {
             mandala_arousal_state_closed,
             0.0,
         );
-        let mut mandala_breath = Mandala::new(
+        let mandala_breath = Mandala::new(
             MANDALA_BREATH_PETAL_SVG_NAME,
             MANDALA_CENTER,
             MANDALA_SCALE,
