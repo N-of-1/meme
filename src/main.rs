@@ -61,15 +61,18 @@ const TITLE: u64 = 4 * FPS;
 const INTRO_A: u64 = TITLE + 25 * FPS; // INTRO
 const INTRO_B: u64 = INTRO_A + 6 * FPS;
 const INTRO_C: u64 = INTRO_B + 8 * FPS;
-//const RELAX: u64 = INTRO_C + 40 * FPS;
 const NEGATIVE_A: u64 = INTRO_C + 22 * FPS; // TASK 1
 const NEGATIVE_B: u64 = NEGATIVE_A + 116 * FPS;
 const BREATHING_A: u64 = NEGATIVE_B + 10 * FPS; // TASK 2
 const BREATHING_B: u64 = BREATHING_A + 120 * FPS;
 const POSITIVE_A: u64 = BREATHING_B + 19 * FPS; // TASK 3
 const POSITIVE_B: u64 = POSITIVE_A + 120 * FPS;
-const FREE_RIDE_A: u64 = POSITIVE_B + 19 * FPS; // TASK 4
-const FREE_RIDE_B: u64 = FREE_RIDE_A + 70 * FPS; // (same image)
+const FREE_RIDE_AA: u64 = POSITIVE_B + (0.5 * FPS as f32) as u64; // TASK 4
+const FREE_RIDE_AB: u64 = FREE_RIDE_AA + (0.5 * FPS as f32) as u64;
+const FREE_RIDE_AC: u64 = FREE_RIDE_AB + (0.5 * FPS as f32) as u64;
+const FREE_RIDE_AD: u64 = FREE_RIDE_AC + (0.5 * FPS as f32) as u64;
+const FREE_RIDE_AE: u64 = FREE_RIDE_AD + 17 * FPS;
+const FREE_RIDE_B: u64 = FREE_RIDE_AE + 70 * FPS; // (same image)
 const FREE_RIDE_C: u64 = FREE_RIDE_B + 10 * FPS; // (same image)
 const THANK_YOU: u64 = FREE_RIDE_C + 9 * FPS; // THANK YOU
 
@@ -631,11 +634,63 @@ impl State for AppState {
         if self.frame_count == POSITIVE_B {
             let _result = self.sound_e7.execute(|sound| sound.play());
         }
-        if self.frame_count == FREE_RIDE_A {
+        if self.frame_count == FREE_RIDE_AA {
             let _result = self.sound_e8.execute(|sound| sound.play());
         }
         if self.frame_count == FREE_RIDE_C {
             let _result = self.sound_e9.execute(|sound| sound.play());
+        }
+
+        let optional_image: Option<&mut Asset<Image>> =
+            if self.frame_count > TITLE && self.frame_count < INTRO_A {
+                Some(&mut self.help_1)
+            } else if self.frame_count >= INTRO_A && self.frame_count < INTRO_B {
+                Some(&mut self.help_2)
+            } else if self.frame_count >= INTRO_B && self.frame_count < INTRO_C {
+                Some(&mut self.help_3)
+            } else if self.frame_count >= INTRO_C && self.frame_count < NEGATIVE_A {
+                Some(&mut self.help_4)
+            // } else if self.frame_count >= NEGATIVE_A && self.frame_count < NEGATIVE_B {
+            //     Some(&mut self.help_5)
+            } else if self.frame_count >= NEGATIVE_B && self.frame_count < BREATHING_A {
+                Some(&mut self.help_5)
+            // } else if self.frame_count >= BREATHING_A && self.frame_count < BREATHING_B {
+            //     Some(&mut self.help_)
+            } else if self.frame_count >= BREATHING_B && self.frame_count < POSITIVE_A {
+                Some(&mut self.help_6)
+            // } else if self.frame_count >= POSITIVE_A && self.frame_count < POSITIVE_B {
+            //     Some(&mut self.help_)
+            // } else if self.frame_count >= POSITIVE_B && self.frame_count < FREE_RIDE_A {
+            //     Some(&mut self.help_)
+            // } else if self.frame_count >= FREE_RIDE_AA && self.frame_count < FREE_RIDE_AB {
+            //     Some(&mut self.help_7a)
+            } else if self.frame_count >= FREE_RIDE_AB && self.frame_count < FREE_RIDE_AC {
+                Some(&mut self.help_7a)
+            } else if self.frame_count >= FREE_RIDE_AC && self.frame_count < FREE_RIDE_AD {
+                Some(&mut self.help_7b)
+            } else if self.frame_count >= FREE_RIDE_AD && self.frame_count < FREE_RIDE_B {
+                Some(&mut self.help_7c)
+            } else if self.frame_count >= FREE_RIDE_B && self.frame_count < FREE_RIDE_C {
+                Some(&mut self.help_8)
+            } else if self.frame_count >= FREE_RIDE_C {
+                Some(&mut self.help_9)
+            } else {
+                None
+            };
+
+        match optional_image {
+            Some(i) => {
+                i.execute(|image| {
+                    window.draw(
+                        &image
+                            .area()
+                            .with_center((SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 4.0)),
+                        Img(&image),
+                    );
+                    Ok(())
+                })?;
+            }
+            None => (),
         }
 
         if self.frame_count < TITLE {
@@ -651,16 +706,17 @@ impl State for AppState {
                 );
                 Ok(())
             })?;
-        } else if self.frame_count < INTRO_A {
-            self.help_1.execute(|image| {
-                window.draw(
-                    &image
-                        .area()
-                        .with_center((SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 4.0)),
-                    Img(&image),
-                );
-                Ok(())
-            })?;
+        }; //else if self.frame_count < INTRO_A {
+           // self.help_1.execute(|image| {
+           //     window.draw(
+           //         &image
+           //             .area()
+           //             .with_center((SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 4.0)),
+           //         Img(&image),
+           //     );
+           //     Ok(())
+           // })?;
+
         // TITLE
         // self.title_text.execute(|image| {
         //     window.draw(
@@ -690,7 +746,7 @@ impl State for AppState {
         //     Ok(())
         // })?;
         // self.right_button_color = COLOR_BUTTON;
-        } else if self.frame_count < NEGATIVE_A {
+        if self.frame_count > INTRO_C && self.frame_count < NEGATIVE_A {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
                     self.draw_mandala(self.mandala_on, window);
@@ -710,7 +766,9 @@ impl State for AppState {
 
                 _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
             }
-        } else if self.frame_count < BREATHING_A {
+        };
+
+        if self.frame_count > NEGATIVE_B && self.frame_count < BREATHING_A {
             self.mandala_on = false;
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
@@ -722,7 +780,9 @@ impl State for AppState {
                 }
                 _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
             }
-        } else if self.frame_count < POSITIVE_A {
+        };
+
+        if self.frame_count > BREATHING_B && self.frame_count < POSITIVE_A {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
                     self.draw_mandala(self.mandala_on, window);
@@ -742,7 +802,9 @@ impl State for AppState {
 
                 _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
             }
-        } else if self.frame_count < FREE_RIDE_A {
+        };
+
+        if self.frame_count > FREE_RIDE_AA && self.frame_count < FREE_RIDE_C {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
                     self.draw_mandala(self.mandala_on, window);
