@@ -49,8 +49,8 @@ mod muse_packet;
 const SCREEN_SIZE: (f32, f32) = (1920.0, 1200.0);
 #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
 const SCREEN_SIZE: (f32, f32) = (1280.0, 650.0);
-const IMAGE_DURATION_FRAMES: u64 = 300;
-const INTER_IMAGE_INTERVAL: u64 = 90;
+const IMAGE_DURATION_FRAMES: u64 = 270; // 4.5 Sec
+const INTER_IMAGE_INTERVAL: u64 = 18; // .3 Sec
 const _IMAGE_SET_SIZE: usize = 24;
 const MANDALA_CENTER: (f32, f32) = (SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 2.0);
 const MANDALA_SCALE: (f32, f32) = (3.0, 3.0); // Adjust size of Mandala vs screen
