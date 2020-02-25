@@ -672,8 +672,8 @@ impl State for AppState {
             //     Some(&mut self.help_7c)
             // } else if self.frame_count >= FREE_RIDE_B && self.frame_count < FREE_RIDE_C {
             //     Some(&mut self.help_8)
-            // } else if self.frame_count >= FREE_RIDE_C {
-            //     Some(&mut self.help_9)
+            } else if self.frame_count >= FREE_RIDE_C {
+                Some(&mut self.help_9)
             } else {
                 None
             };
