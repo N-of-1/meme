@@ -28,9 +28,7 @@ use muse_model::{DisplayType, MuseModel};
 use quicksilver::{
     combinators::result,
     geom::{Line, Rectangle, Shape, Transform, Vector},
-    graphics::{
-        Background::Col, Background::Img, Color, Font, FontStyle, Image, Mesh, ShapeRenderer,
-    },
+    graphics::{Background::Img, Color, Font, FontStyle, Image, Mesh, ShapeRenderer},
     input::{ButtonState, GamepadButton, Key, MouseButton},
     lifecycle::{run, Asset, Event, Settings, State, Window},
     sound::Sound,
@@ -52,18 +50,22 @@ const SCREEN_SIZE: (f32, f32) = (1920.0, 1200.0);
 const SCREEN_SIZE: (f32, f32) = (1280.0, 650.0);
 const IMAGE_DURATION_FRAMES: u64 = 300;
 const INTER_IMAGE_INTERVAL: u64 = 90;
-const IMAGE_SET_SIZE: usize = 24;
+const _IMAGE_SET_SIZE: usize = 24;
 const MANDALA_CENTER: (f32, f32) = (SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 2.0);
 const MANDALA_SCALE: (f32, f32) = (3.0, 3.0); // Adjust size of Mandala vs screen
 
 const FPS: u64 = 60; // Frames per second
 const UPS: u64 = 60; // Updates per second
 const FRAME_TITLE: u64 = 4 * FPS;
-const FRAME_INTRO: u64 = FRAME_TITLE + 1 * FPS;
-const FRAME_NEGATIVE: u64 = FRAME_INTRO + 120 * FPS;
-const FRAME_BREATHING: u64 = FRAME_NEGATIVE + 120 * FPS;
-const FRAME_POSITIVE: u64 = FRAME_BREATHING + 120 * FPS;
-const FRAME_FREE_RIDE: u64 = FRAME_POSITIVE + 120 * FPS;
+const FRAME_INTRO: u64 = FRAME_TITLE + 1 * FPS; //F1
+const FRAME_NEGATIVE: u64 = FRAME_INTRO + 120 * FPS; //F2
+                                                     // Add a constant for F3, Audio with images 120
+const FRAME_BREATHING: u64 = FRAME_NEGATIVE + 120 * FPS; //F4
+                                                         // Talk with no images F5
+const FRAME_POSITIVE: u64 = FRAME_BREATHING + 120 * FPS; //F6
+const FRAME_FREE_RIDE: u64 = FRAME_POSITIVE + 120 * FPS; //F7 Announce Freeride
+                                                         //F8 (merge audio file into end of F7)
+                                                         //F9 Thank you slide
 const IMAGE_LOGO: &str = "Nof1-logo.png";
 const MANDALA_VALENCE_PETAL_SVG_NAME: &str = "mandala_valence_petal.svg";
 const MANDALA_AROUSAL_PETAL_SVG_NAME: &str = "mandala_arousal_petal.svg";
@@ -118,7 +120,7 @@ const COLOR_BACKGROUND: Color = Color::BLACK;
 const COLOR_TITLE: Color = COLOR_NOF1_DARK_BLUE;
 const COLOR_EEG_LABEL: Color = COLOR_NOF1_DARK_BLUE;
 const COLOR_TEXT: Color = Color::BLACK;
-const COLOR_BUTTON: Color = COLOR_NOF1_DARK_BLUE;
+const _COLOR_BUTTON: Color = COLOR_NOF1_DARK_BLUE;
 const COLOR_BUTTON_PRESSED: Color = COLOR_NOF1_LIGHT_BLUE;
 const COLOR_EMOTION: Color = Color::YELLOW;
 const COLOR_VALENCE_MANDALA_CLOSED: Color = Color {
@@ -370,7 +372,7 @@ impl State for AppState {
             mandala_arousal_state_closed,
             0.0,
         );
-        let mut mandala_breath = Mandala::new(
+        let mandala_breath = Mandala::new(
             MANDALA_BREATH_PETAL_SVG_NAME,
             MANDALA_CENTER,
             MANDALA_SCALE,
