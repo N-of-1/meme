@@ -59,11 +59,15 @@ const MANDALA_SCALE: (f32, f32) = (3.0, 3.0); // Adjust size of Mandala vs scree
 const FPS: u64 = 60; // Frames per second
 const UPS: u64 = 60; // Updates per second
 const FRAME_TITLE: u64 = 4 * FPS;
-const FRAME_INTRO: u64 = FRAME_TITLE + 1 * FPS;
-const FRAME_NEGATIVE: u64 = FRAME_INTRO + 120 * FPS;
-const FRAME_BREATHING: u64 = FRAME_NEGATIVE + 120 * FPS;
-const FRAME_POSITIVE: u64 = FRAME_BREATHING + 120 * FPS;
-const FRAME_FREE_RIDE: u64 = FRAME_POSITIVE + 120 * FPS;
+const FRAME_INTRO: u64 = FRAME_TITLE + 1 * FPS; //F1
+const FRAME_NEGATIVE: u64 = FRAME_INTRO + 120 * FPS; //F2
+                                                     // Add a constant for F3, Audio with images 120
+const FRAME_BREATHING: u64 = FRAME_NEGATIVE + 120 * FPS; //F4
+                                                         // Talk with no images F5
+const FRAME_POSITIVE: u64 = FRAME_BREATHING + 120 * FPS; //F6
+const FRAME_FREE_RIDE: u64 = FRAME_POSITIVE + 120 * FPS; //F7 Announce Freeride
+                                                         //F8 (merge audio file into end of F7)
+                                                         //F9 Thank you slide
 const IMAGE_LOGO: &str = "Nof1-logo.png";
 const MANDALA_VALENCE_PETAL_SVG_NAME: &str = "mandala_valence_petal.svg";
 const MANDALA_AROUSAL_PETAL_SVG_NAME: &str = "mandala_arousal_petal.svg";
