@@ -801,7 +801,7 @@ impl State for AppState {
             }
         };
 
-        if self.frame_count > FREE_RIDE_A
+        if self.frame_count > FREE_RIDE_AA
         /* && self.frame_count < THANK_YOU*/
         {
             match self.muse_model.display_type {
