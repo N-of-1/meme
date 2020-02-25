@@ -746,7 +746,7 @@ impl State for AppState {
         //     Ok(())
         // })?;
         // self.right_button_color = COLOR_BUTTON;
-        if self.frame_count > INTRO_C && self.frame_count < NEGATIVE_A {
+        if self.frame_count > NEGATIVE_A && self.frame_count < NEGATIVE_B {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
                     self.draw_mandala(self.mandala_on, window);
@@ -768,7 +768,7 @@ impl State for AppState {
             }
         };
 
-        if self.frame_count > NEGATIVE_B && self.frame_count < BREATHING_A {
+        if self.frame_count > BREATHING_A && self.frame_count < BREATHING_B {
             self.mandala_on = false;
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
@@ -782,7 +782,7 @@ impl State for AppState {
             }
         };
 
-        if self.frame_count > BREATHING_B && self.frame_count < POSITIVE_A {
+        if self.frame_count > POSITIVE_A && self.frame_count < POSITIVE_B {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
                     self.draw_mandala(self.mandala_on, window);
