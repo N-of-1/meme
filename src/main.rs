@@ -57,16 +57,22 @@ const MANDALA_SCALE: (f32, f32) = (3.0, 3.0); // Adjust size of Mandala vs scree
 
 const FPS: u64 = 60; // Frames per second
 const UPS: u64 = 60; // Updates per second
-const FRAME_TITLE: u64 = 4 * FPS;
-const FRAME_INTRO: u64 = FRAME_TITLE + 1 * FPS; //F1
-const FRAME_NEGATIVE: u64 = FRAME_INTRO + 120 * FPS; //F2
-                                                     // Add a constant for F3, Audio with images 120
-const FRAME_BREATHING: u64 = FRAME_NEGATIVE + 120 * FPS; //F4
-                                                         // Talk with no images F5
-const FRAME_POSITIVE: u64 = FRAME_BREATHING + 120 * FPS; //F6
-const FRAME_FREE_RIDE: u64 = FRAME_POSITIVE + 120 * FPS; //F7 Announce Freeride
-                                                         //F8 (merge audio file into end of F7)
-                                                         //F9 Thank you slide
+const TITLE: u64 = 4 * FPS;
+const INTRO_A: u64 = TITLE + 25 * FPS; // INTRO
+const INTRO_B: u64 = INTRO_A + 6 * FPS;
+const INTRO_C: u64 = INTRO_B + 8 * FPS;
+const RELAX: u64 = INTRO_C + 40 * FPS;
+const NEGATIVE_A: u64 = RELAX + 22 * FPS; // TASK 1
+const NEGATIVE_B: u64 = NEGATIVE_A + 116 * FPS;
+const BREATHING_A: u64 = NEGATIVE_B + 10 * FPS; // TASK 2
+const BREATHING_B: u64 = BREATHING_A + 120 * FPS;
+const POSITIVE_A: u64 = BREATHING_B + 19 * FPS; // TASK 3
+const POSITIVE_B: u64 = POSITIVE_A + 120 * FPS;
+const FREE_RIDE_A: u64 = POSITIVE_B + 19 * FPS; // TASK 4
+const FREE_RIDE_B: u64 = FREE_RIDE_A + 10 * FPS; // (same image)
+const FREE_RIDE_C: u64 = FREE_RIDE_B + 10 * FPS; // (same image)
+const THANK_YOU: u64 = FREE_RIDE_C + 9 * FPS; // THANK YOU
+
 const IMAGE_LOGO: &str = "Nof1-logo.png";
 const MANDALA_VALENCE_PETAL_SVG_NAME: &str = "mandala_valence_petal.svg";
 const MANDALA_AROUSAL_PETAL_SVG_NAME: &str = "mandala_arousal_petal.svg";
@@ -82,7 +88,7 @@ const FONT_GRAPH_LABEL_SIZE: f32 = 40.0;
 const FONT_EEG_LABEL_SIZE: f32 = 30.0;
 
 const SOUND_CLICK: &str = "click.ogg";
-const SOUND_GUIDANCE: &str = "Meet Your Mind Leo's voice 200224.mp3";
+const _SOUND_GUIDANCE: &str = "Meet Your Mind Leo's voice 200224.mp3";
 
 const STR_TITLE: &str = "Meme Machine";
 const STR_HELP_TEXT: &str = "First relax and watch your mind calm\n\nYou will then be shown some images. Press the left and right images to tell us if they are\nfamiliar and how they make you feel.";
@@ -209,7 +215,26 @@ struct AppState {
     help_text: Asset<Image>,
     logo: Asset<Image>,
     sound_click: Asset<Sound>,
-    sound_blah: Asset<Sound>,
+    sound_e1: Asset<Sound>,
+    sound_e2: Asset<Sound>,
+    sound_e3: Asset<Sound>,
+    sound_e4: Asset<Sound>,
+    sound_e5: Asset<Sound>,
+    sound_e6: Asset<Sound>,
+    sound_e7: Asset<Sound>,
+    sound_e8: Asset<Sound>,
+    sound_e9: Asset<Sound>,
+    help_1: Asset<Image>,
+    help_2: Asset<Image>,
+    help_3: Asset<Image>,
+    help_4: Asset<Image>,
+    help_5: Asset<Image>,
+    help_6: Asset<Image>,
+    help_7a: Asset<Image>,
+    help_7b: Asset<Image>,
+    help_7c: Asset<Image>,
+    help_8: Asset<Image>,
+    help_9: Asset<Image>,
     left_button_color: Color,
     right_button_color: Color,
     mandala_valence: Mandala,
@@ -319,7 +344,29 @@ impl State for AppState {
 
         let logo = Asset::new(Image::load(IMAGE_LOGO));
         let sound_click = Asset::new(Sound::load(SOUND_CLICK));
-        let sound_blah = Asset::new(Sound::load(SOUND_GUIDANCE));
+        let sound_e1 = Asset::new(Sound::load("F1.mp3"));
+        let sound_e2 = Asset::new(Sound::load("F2.mp3"));
+        let sound_e3 = Asset::new(Sound::load("F3.mp3"));
+        let sound_e4 = Asset::new(Sound::load("F4.mp3"));
+        let sound_e5 = Asset::new(Sound::load("F5.mp3"));
+        let sound_e6 = Asset::new(Sound::load("F6.mp3"));
+        let sound_e7 = Asset::new(Sound::load("F7.mp3"));
+        let sound_e8 = Asset::new(Sound::load("F8.mp3"));
+        let sound_e9 = Asset::new(Sound::load("F9.mp3"));
+
+        let help_1 = Asset::new(Image::load("1fi.png"));
+        let help_2 = Asset::new(Image::load("2fi.png"));
+        let help_3 = Asset::new(Image::load("3fi.png"));
+        let help_4 = Asset::new(Image::load("4fi.png"));
+        let help_5 = Asset::new(Image::load("5fi.png"));
+        let help_6 = Asset::new(Image::load("6fi.png"));
+        let help_7a = Asset::new(Image::load("7a_fi.png"));
+        let help_7b = Asset::new(Image::load("7b_fi.png"));
+        let help_7c = Asset::new(Image::load("7c_fi.png"));
+        let help_8 = Asset::new(Image::load("8fi.png"));
+        let help_9 = Asset::new(Image::load("9fi.png"));
+
+        //        let sound_blah = Asset::new(Sound::load(SOUND_GUIDANCE));
         let (rx_eeg, muse_model) = muse_model::MuseModel::new();
         let mandala_valence_state_open = MandalaState::new(
             COLOR_VALENCE_MANDALA_OPEN,
@@ -404,10 +451,29 @@ impl State for AppState {
             help_text,
             logo,
             sound_click,
-            sound_blah,
             mandala_valence,
             mandala_arousal,
             mandala_breath,
+            sound_e1,
+            sound_e2,
+            sound_e3,
+            sound_e4,
+            sound_e5,
+            sound_e6,
+            sound_e7,
+            sound_e8,
+            sound_e9,
+            help_1,
+            help_2,
+            help_3,
+            help_4,
+            help_5,
+            help_6,
+            help_7a,
+            help_7b,
+            help_7c,
+            help_8,
+            help_9,
             left_button_color: COLOR_CLEAR,
             right_button_color: COLOR_CLEAR,
             eeg_view_state,
@@ -504,7 +570,7 @@ impl State for AppState {
 
         let (normalized_valence_option, normalized_arousal_option) =
             self.muse_model.receive_packets();
-        if self.frame_count > FRAME_TITLE {
+        if self.frame_count > TITLE {
             let current_time = self.seconds_since_start();
             if let Some(normalized_valence) = normalized_valence_option {
                 if normalized_valence.is_finite() {
@@ -543,12 +609,36 @@ impl State for AppState {
         let background_color = COLOR_BACKGROUND;
         window.clear(background_color)?;
 
-        if self.frame_count == FRAME_INTRO {
-            // PLAY INTRO AUDIO AUTOMATICALLY WHEN THE TEXT APPEARS
-            let _result = self.sound_blah.execute(|sound| sound.play());
+        // THE NAME AT THE TOP OF THE IF STATEMENT IS THE NAME OF THE PREVIOUS STAGE
+        if self.frame_count == TITLE {
+            let _result = self.sound_e1.execute(|sound| sound.play());
+        }
+        if self.frame_count == NEGATIVE_A {
+            let _result = self.sound_e2.execute(|sound| sound.play());
+        }
+        if self.frame_count == NEGATIVE_A {
+            let _result = self.sound_e3.execute(|sound| sound.play());
+        }
+        if self.frame_count == NEGATIVE_A {
+            let _result = self.sound_e4.execute(|sound| sound.play());
+        }
+        if self.frame_count == NEGATIVE_A {
+            let _result = self.sound_e5.execute(|sound| sound.play());
+        }
+        if self.frame_count == NEGATIVE_A {
+            let _result = self.sound_e6.execute(|sound| sound.play());
+        }
+        if self.frame_count == NEGATIVE_A {
+            let _result = self.sound_e7.execute(|sound| sound.play());
+        }
+        if self.frame_count == NEGATIVE_A {
+            let _result = self.sound_e8.execute(|sound| sound.play());
+        }
+        if self.frame_count == NEGATIVE_A {
+            let _result = self.sound_e9.execute(|sound| sound.play());
         }
 
-        if self.frame_count < FRAME_TITLE {
+        if self.frame_count < TITLE {
             self.draw_mandala(self.mandala_on, window);
 
             // LOGO
@@ -561,28 +651,37 @@ impl State for AppState {
                 );
                 Ok(())
             })?;
-        } else if self.frame_count < FRAME_INTRO {
-            // TITLE
-            self.title_text.execute(|image| {
+        } else if self.frame_count < INTRO_A {
+            self.help_1.execute(|image| {
                 window.draw(
                     &image
                         .area()
-                        .with_center((SCREEN_SIZE.0 / 2.0, TITLE_V_MARGIN)),
+                        .with_center((SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 4.0)),
                     Img(&image),
                 );
                 Ok(())
             })?;
+        // TITLE
+        // self.title_text.execute(|image| {
+        //     window.draw(
+        //         &image
+        //             .area()
+        //             .with_center((SCREEN_SIZE.0 / 2.0, TITLE_V_MARGIN)),
+        //         Img(&image),
+        //     );
+        //     Ok(())
+        // })?;
 
-            // TEXT
-            self.help_text.execute(|image| {
-                window.draw(
-                    &image
-                        .area()
-                        .with_center((SCREEN_SIZE.0 / 2.0, TEXT_V_MARGIN)),
-                    Img(&image),
-                );
-                Ok(())
-            })?;
+        // // TEXT
+        // self.help_text.execute(|image| {
+        //     window.draw(
+        //         &image
+        //             .area()
+        //             .with_center((SCREEN_SIZE.0 / 2.0, TEXT_V_MARGIN)),
+        //         Img(&image),
+        //     );
+        //     Ok(())
+        // })?;
 
         // RIGHT BUTTON
         // let right_color = self.right_button_color;
@@ -591,7 +690,7 @@ impl State for AppState {
         //     Ok(())
         // })?;
         // self.right_button_color = COLOR_BUTTON;
-        } else if self.frame_count < FRAME_NEGATIVE {
+        } else if self.frame_count < NEGATIVE_A {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
                     self.draw_mandala(self.mandala_on, window);
@@ -611,7 +710,7 @@ impl State for AppState {
 
                 _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
             }
-        } else if self.frame_count < FRAME_BREATHING {
+        } else if self.frame_count < BREATHING_A {
             self.mandala_on = false;
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
@@ -623,7 +722,7 @@ impl State for AppState {
                 }
                 _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
             }
-        } else if self.frame_count < FRAME_POSITIVE {
+        } else if self.frame_count < FRAME_5_POSITIVE {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
                     self.draw_mandala(self.mandala_on, window);
@@ -643,7 +742,7 @@ impl State for AppState {
 
                 _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
             }
-        } else if self.frame_count < FRAME_FREE_RIDE {
+        } else if self.frame_count < FREE_RIDE_A {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
                     self.draw_mandala(self.mandala_on, window);
