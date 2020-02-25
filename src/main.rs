@@ -634,7 +634,7 @@ impl State for AppState {
         if self.frame_count == POSITIVE_B {
             let _result = self.sound_e7.execute(|sound| sound.play());
         }
-        if self.frame_count == FREE_RIDE_AA {
+        if self.frame_count == FREE_RIDE_AB {
             let _result = self.sound_e8.execute(|sound| sound.play());
         }
         if self.frame_count == FREE_RIDE_C {
@@ -664,14 +664,14 @@ impl State for AppState {
             //     Some(&mut self.help_)
             // } else if self.frame_count >= FREE_RIDE_AA && self.frame_count < FREE_RIDE_AB {
             //     Some(&mut self.help_7a)
-            } else if self.frame_count >= FREE_RIDE_AB && self.frame_count < FREE_RIDE_AC {
-                Some(&mut self.help_7a)
-            } else if self.frame_count >= FREE_RIDE_AC && self.frame_count < FREE_RIDE_AD {
-                Some(&mut self.help_7b)
-            } else if self.frame_count >= FREE_RIDE_AD && self.frame_count < FREE_RIDE_B {
-                Some(&mut self.help_7c)
-            } else if self.frame_count >= FREE_RIDE_B && self.frame_count < FREE_RIDE_C {
-                Some(&mut self.help_8)
+            // } else if self.frame_count >= FREE_RIDE_AB && self.frame_count < FREE_RIDE_AC {
+            //     Some(&mut self.help_7a)
+            // } else if self.frame_count >= FREE_RIDE_AC && self.frame_count < FREE_RIDE_AD {
+            //     Some(&mut self.help_7b)
+            // } else if self.frame_count >= FREE_RIDE_AD && self.frame_count < FREE_RIDE_B {
+            //     Some(&mut self.help_7c)
+            // } else if self.frame_count >= FREE_RIDE_B && self.frame_count < FREE_RIDE_C {
+            //     Some(&mut self.help_8)
             } else if self.frame_count >= FREE_RIDE_C {
                 Some(&mut self.help_9)
             } else {
