@@ -633,9 +633,9 @@ impl State for AppState {
         if self.frame_count == POSITIVE_B {
             let _result = self.sound_e7.execute(|sound| sound.play());
         }
-        if self.frame_count == FREE_RIDE_AB {
-            let _result = self.sound_e8.execute(|sound| sound.play());
-        }
+        // if self.frame_count == FREE_RIDE_AB {
+        //     let _result = self.sound_e8.execute(|sound| sound.play());
+        // }
         if self.frame_count == FREE_RIDE_C {
             let _result = self.sound_e9.execute(|sound| sound.play());
         }
@@ -801,7 +801,7 @@ impl State for AppState {
             }
         };
 
-        if self.frame_count > FREE_RIDE_AA && self.frame_count < FREE_RIDE_C {
+        if self.frame_count > FREE_RIDE_B && self.frame_count < THANK_YOU {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
                     self.draw_mandala(self.mandala_on, window);
