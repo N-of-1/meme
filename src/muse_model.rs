@@ -1,11 +1,13 @@
-#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 use crate::muse_packet::*;
+
+//#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 
 /// Muse data model and associated message handling from muse_packet
 // #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 use std::sync::mpsc::SendError;
 
 // use log::*;
+use chrono::Local;
 use csv::Writer;
 use num_traits::float::Float;
 use std::net::SocketAddr;
@@ -22,6 +24,9 @@ const AF7: usize = 1; // Muse measurment array index for second electrode
 const AF8: usize = 2; // Muse measurment array index for third electrode
 const TP10: usize = 3; // Muse measurment array index for fourth electrode
 
+const TIME_FORMAT_FOR_FILENAMES: &str = "%Y-%m-%d %H-%M-%S"; // 2020-02-25 09-35-49
+const TIME_FORMAT_FOR_CSV: &str = "%Y-%m-%d %H:%M:%S"; // 2020-02-25 09:35:49
+
 /// Make it easier to print out the message receiver object for debug purposes
 // struct ReceiverDebug<T> {
 //     receiver: osc::Receiver<T>,
@@ -32,6 +37,29 @@ const TP10: usize = 3; // Muse measurment array index for fourth electrode
 //         write!(f, "<Receiver>")
 //     }
 // }
+
+pub fn current_date_time_filename_format() -> String {
+    let date = Local::now();
+    let s: String = format!("{}", date.format(TIME_FORMAT_FOR_FILENAMES));
+
+    s
+}
+
+fn date_time_csv_format(_duration: Duration) -> String {
+    current_date_time_csv_format()
+    //TODO Convert duration to current time (they are essentially the same for current use cases)
+    // let date = Local::now();
+    // let s: String = format!("{}", date.format(TIME_FORMAT_FOR_CSV));
+
+    // s
+}
+
+fn current_date_time_csv_format() -> String {
+    let date = Local::now();
+    let s: String = format!("{}", date.format(TIME_FORMAT_FOR_CSV));
+
+    s
+}
 
 /// The different display modes supported for live screen updates based on Muse EEG signals
 #[derive(Clone, Debug)]
@@ -419,7 +447,8 @@ impl MuseModel {
     }
 
     fn log_alpha(&mut self, receive_time: Duration) {
-        let time = format!("{:?}", receive_time);
+        let receive_time_csv_format = date_time_csv_format(receive_time);
+        let time = format!("{}", receive_time_csv_format);
         let tp9 = format!("{:?}", self.alpha[TP9]);
         let af7 = format!("{:?}", self.alpha[AF7]);
         let af8 = format!("{:?}", self.alpha[AF8]);
@@ -431,7 +460,8 @@ impl MuseModel {
     }
 
     fn log_beta(&mut self, receive_time: Duration) {
-        let time = format!("{:?}", receive_time);
+        let receive_time_csv_format = date_time_csv_format(receive_time);
+        let time = format!("{}", receive_time_csv_format);
         let tp9 = format!("{:?}", self.beta[TP9]);
         let af7 = format!("{:?}", self.beta[AF7]);
         let af8 = format!("{:?}", self.beta[AF8]);
@@ -443,7 +473,8 @@ impl MuseModel {
     }
 
     fn log_gamma(&mut self, receive_time: Duration) {
-        let time = format!("{:?}", receive_time);
+        let receive_time_csv_format = date_time_csv_format(receive_time);
+        let time = format!("{}", receive_time_csv_format);
         let tp9 = format!("{:?}", self.gamma[TP9]);
         let af7 = format!("{:?}", self.gamma[AF7]);
         let af8 = format!("{:?}", self.gamma[AF8]);
@@ -455,7 +486,8 @@ impl MuseModel {
     }
 
     fn log_delta(&mut self, receive_time: Duration) {
-        let time = format!("{:?}", receive_time);
+        let receive_time_csv_format = date_time_csv_format(receive_time);
+        let time = format!("{}", receive_time_csv_format);
         let tp9 = format!("{:?}", self.delta[TP9]);
         let af7 = format!("{:?}", self.delta[AF7]);
         let af8 = format!("{:?}", self.delta[AF8]);
@@ -467,7 +499,8 @@ impl MuseModel {
     }
 
     fn log_theta(&mut self, receive_time: Duration) {
-        let time = format!("{:?}", receive_time);
+        let receive_time_csv_format = date_time_csv_format(receive_time);
+        let time = format!("{}", receive_time_csv_format);
         let tp9 = format!("{:?}", self.theta[TP9]);
         let af7 = format!("{:?}", self.theta[AF7]);
         let af8 = format!("{:?}", self.theta[AF8]);
@@ -479,7 +512,8 @@ impl MuseModel {
     }
 
     fn log_eeg(&mut self, receive_time: Duration, eeg_values: &[f32; 4]) {
-        let time = format!("{:?}", receive_time);
+        let receive_time_csv_format = date_time_csv_format(receive_time);
+        let time = format!("{}", receive_time_csv_format);
         let tp9 = format!("{:?}", eeg_values[TP9]);
         let af7 = format!("{:?}", eeg_values[AF7]);
         let af8 = format!("{:?}", eeg_values[AF8]);
@@ -491,7 +525,8 @@ impl MuseModel {
     }
 
     fn log_other(&mut self, receive_time: Duration, other: &str) {
-        let time = format!("{:?}", receive_time);
+        let receive_time_csv_format = date_time_csv_format(receive_time);
+        let time = format!("{}", receive_time_csv_format);
 
         self.other_log_writer
             .write_record(&[&time, other])
@@ -710,7 +745,7 @@ impl MuseModel {
 
 #[cfg(test)]
 mod tests {
-    use crate::muse_model::NormalizedValue;
+    use super::*;
 
     #[test]
     fn test_no_mean() {
@@ -836,5 +871,21 @@ mod tests {
         assert_eq!(nv.normalize(nv.min), Some(-4.0560265));
         assert_eq!(nv.normalize(nv.max), Some(1.7176768));
         assert_eq!(nv.history.len(), 120);
+    }
+
+    #[test]
+    fn test_current_time_formatting_for_filenames() {
+        let s = current_date_time_filename_format();
+        println!("{}", s);
+
+        assert_eq!(s.len(), 19);
+    }
+
+    #[test]
+    fn test_current_time_formatting_for_csv() {
+        let s = current_date_time_csv_format();
+        println!("{}", s);
+
+        assert_eq!(s.len(), 19);
     }
 }
