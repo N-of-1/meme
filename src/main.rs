@@ -633,7 +633,7 @@ impl State for AppState {
         if self.frame_count == POSITIVE_B {
             let _result = self.sound_e7.execute(|sound| sound.play());
         }
-        if self.frame_count == FREE_RIDE_AB {
+        if self.frame_count == FREE_RIDE_B {
             let _result = self.sound_e8.execute(|sound| sound.play());
         }
         if self.frame_count == FREE_RIDE_C {
