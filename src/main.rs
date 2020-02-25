@@ -665,11 +665,11 @@ impl State for AppState {
                 Some(&mut self.help_7a)
             } else if self.frame_count >= FREE_RIDE_AB && self.frame_count < FREE_RIDE_AC {
                 Some(&mut self.help_7b)
-            } else if self.frame_count >= FREE_RIDE_AC && self.frame_count < FREE_RIDE_B {
+            } else if self.frame_count >= FREE_RIDE_AC && self.frame_count < FREE_RIDE_AA {
                 Some(&mut self.help_7c)
-            } else if self.frame_count >= FREE_RIDE_B && self.frame_count < FREE_RIDE_C {
+            } else if self.frame_count >= FREE_RIDE_AA && self.frame_count < FREE_RIDE_AB {
                 Some(&mut self.help_8)
-            } else if self.frame_count >= FREE_RIDE_C {
+            } else if self.frame_count >= THANK_YOU {
                 Some(&mut self.help_9)
             } else {
                 None
@@ -801,9 +801,7 @@ impl State for AppState {
             }
         };
 
-        if self.frame_count > FREE_RIDE_AA
-        /* && self.frame_count < THANK_YOU*/
-        {
+        if self.frame_count > FREE_RIDE_AB && self.frame_count < THANK_YOU {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
                     self.draw_mandala(self.mandala_on, window);
