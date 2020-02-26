@@ -1,4 +1,5 @@
 use crate::muse_packet::*;
+use std::time::UNIX_EPOCH;
 
 //#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 
@@ -10,10 +11,15 @@ use std::sync::mpsc::SendError;
 use chrono::Local;
 use csv::Writer;
 use num_traits::float::Float;
+use std::f32::consts::E;
 use std::net::SocketAddr;
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
-use std::{convert::From, fs::File, time::Duration};
+use std::{
+    convert::From,
+    fs::File,
+    time::{Duration, SystemTime},
+};
 
 const FOREHEAD_COUNTDOWN: i32 = 5; // 60th of a second counts
 const BLINK_COUNTDOWN: i32 = 5;
@@ -23,6 +29,10 @@ const TP9: usize = 0; // Muse measurment array index for first electrode
 const AF7: usize = 1; // Muse measurment array index for second electrode
 const AF8: usize = 2; // Muse measurment array index for third electrode
 const TP10: usize = 3; // Muse measurment array index for fourth electrode
+
+const WINDOW_LENGTH: usize = 10; // Current values is smoothed by most recent X values
+
+const OSC_PORT: u16 = 34254;
 
 const TIME_FORMAT_FOR_FILENAMES: &str = "%Y-%m-%d %H-%M-%S"; // 2020-02-25 09-35-49
 const TIME_FORMAT_FOR_CSV: &str = "%Y-%m-%d %H:%M:%S"; // 2020-02-25 09:35:49
@@ -108,8 +118,6 @@ mod inner_receiver {
     use super::{EegMessageReceiver, MuseMessage};
     use nannou_osc;
 
-    const OSC_PORT: u16 = 34254;
-
     pub struct InnerMessageReceiver {
         receiver: nannou_osc::Receiver,
     }
@@ -118,7 +126,7 @@ mod inner_receiver {
         fn new() -> InnerMessageReceiver {
             info!("Connecting to EEG");
 
-            let receiver = nannou_osc::receiver(OSC_PORT)
+            let receiver = nannou_osc::receiver(super::OSC_PORT)
                 .expect("Can not bind to port- is another copy of this app already running?");
 
             InnerMessageReceiver { receiver }
@@ -163,8 +171,6 @@ mod inner_receiver {
         }
     }
 }
-
-const WINDOW_LENGTH: usize = 10; // Current values is smoothed by most recent X values
 
 pub struct NormalizedValue<T: Float + From<i16>> {
     current: Option<T>,
@@ -360,8 +366,7 @@ where
 
 /// Average the raw values
 pub fn average_from_front_electrodes(x: &[f32; 4]) -> f32 {
-    let base = std::f32::consts::E;
-    (base.powf(x[1]) + base.powf(x[2])) / 2.0
+    (E.powf(x[1]) + E.powf(x[2])) / 2.0
     //(x[0] + x[1] + x[2] + x[3]) / 4.0
     //(x[1] + x[2]) / 2.0
 }
@@ -524,13 +529,20 @@ impl MuseModel {
             .expect("Can not add row to eeg.csv");
     }
 
-    fn log_other(&mut self, receive_time: Duration, other: &str) {
+    pub fn log_other(&mut self, receive_time: Duration, other: &str) {
         let receive_time_csv_format = date_time_csv_format(receive_time);
         let time = format!("{}", receive_time_csv_format);
 
         self.other_log_writer
             .write_record(&[&time, other])
             .expect("Can not add row to other.csv");
+    }
+
+    pub fn log_other_now(&mut self, other: &str) {
+        let duration = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("System clock is not set correctly");
+        self.log_other(duration, other);
     }
 
     /// User has recently clamped their teeth, creating myoelectric interference so interrupting the EEG signal
@@ -592,8 +604,7 @@ impl MuseModel {
 
     /// Front assymetry- higher values mean more positive mood
     fn front_assymetry(&self) -> f32 {
-        let base = std::f32::consts::E;
-        base.powf(self.alpha[AF8] - self.alpha[AF7])
+        E.powf(self.alpha[AF8] - self.alpha[AF7])
     }
 
     /// Positive-negative balance of emotion
@@ -603,9 +614,8 @@ impl MuseModel {
 
     /// Level of emotional intensity based on other, more primitive values
     pub fn calc_abolute_arousal(&self) -> f32 {
-        let base = std::f32::consts::E;
-        let frontal_apha = (base.powf(self.alpha[AF7]) + base.powf(self.alpha[AF8])) / 2.0;
-        let frontal_theta = (base.powf(self.theta[AF7]) + base.powf(self.theta[AF8])) / 2.0;
+        let frontal_apha = (E.powf(self.alpha[AF7]) + E.powf(self.alpha[AF8])) / 2.0;
+        let frontal_theta = (E.powf(self.theta[AF7]) + E.powf(self.theta[AF8])) / 2.0;
         frontal_theta / (frontal_apha + 1e-6)
     }
 

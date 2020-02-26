@@ -313,6 +313,17 @@ impl AppState {
             .draw(seconds_since_start, &mut shape_renderer);
         window.mesh().extend(&mesh);
     }
+
+    /// Add a tag to the output CSV file indicating what happened at runtime
+    fn log_result(&mut self, tag: &str, result: Result<()>) {
+        if result.is_ok() {
+            let s: &str = &format!("{}, OK", tag);
+            self.muse_model.log_other_now(s);
+        } else {
+            let s: &str = &format!("{}, ERROR", tag);
+            self.muse_model.log_other_now(s);
+        }
+    }
 }
 
 #[allow(dead_code)]
@@ -501,6 +512,8 @@ impl State for AppState {
                     .iter()
                     .any(|pad| pad[GamepadButton::FaceLeft].is_down())
             {
+                self.muse_model
+                    .log_other_now("Application shutdown by ESC key");
                 self.muse_model.flush_all();
                 window.close();
             }
@@ -613,31 +626,39 @@ impl State for AppState {
 
         // THE NAME AT THE TOP OF THE IF STATEMENT IS THE NAME OF THE PREVIOUS STAGE
         if self.frame_count == TITLE {
-            let _result = self.sound_e1.execute(|sound| sound.play());
+            let result = self.sound_e1.execute(|sound| sound.play());
+            self.log_result(&"Sound, TITLE", result);
         }
         if self.frame_count == INTRO_C {
-            let _result = self.sound_e2.execute(|sound| sound.play());
+            let result = self.sound_e2.execute(|sound| sound.play());
+            self.log_result(&"Sound, INTRO_C", result);
         }
         if self.frame_count == NEGATIVE_A {
-            let _result = self.sound_e3.execute(|sound| sound.play());
+            let result = self.sound_e3.execute(|sound| sound.play());
+            self.log_result(&"Sound, NEGATIVE_A", result);
         }
         if self.frame_count == NEGATIVE_B {
-            let _result = self.sound_e4.execute(|sound| sound.play());
+            let result = self.sound_e4.execute(|sound| sound.play());
+            self.log_result(&"Sound, NEGATIVE_B", result);
         }
         if self.frame_count == BREATHING_B {
-            let _result = self.sound_e5.execute(|sound| sound.play());
+            let result = self.sound_e5.execute(|sound| sound.play());
+            self.log_result(&"Sound, BREATHING_B", result);
         }
         if self.frame_count == POSITIVE_A {
-            let _result = self.sound_e6.execute(|sound| sound.play());
+            let result = self.sound_e6.execute(|sound| sound.play());
+            self.log_result(&"Sound, POSITIVE_A", result);
         }
         if self.frame_count == POSITIVE_B {
-            let _result = self.sound_e7.execute(|sound| sound.play());
+            let result = self.sound_e7.execute(|sound| sound.play());
+            self.log_result(&"Sound, POSITIVE_B", result);
         }
         // if self.frame_count == FREE_RIDE_AB {
         //     let _result = self.sound_e8.execute(|sound| sound.play());
         // }
         if self.frame_count == FREE_RIDE_C {
-            let _result = self.sound_e9.execute(|sound| sound.play());
+            let result = self.sound_e9.execute(|sound| sound.play());
+            self.log_result(&"Sound, FREE_RIDE_C", result);
         }
 
         let optional_image: Option<&mut Asset<Image>> =
