@@ -181,8 +181,8 @@ const BUTTON_HEIGHT: f32 = 50.0;
 const BUTTON_H_MARGIN: f32 = 20.0;
 const BUTTON_V_MARGIN: f32 = 20.0;
 
-const TITLE_V_MARGIN: f32 = 40.0;
-const TEXT_V_MARGIN: f32 = 200.0;
+const _TITLE_V_MARGIN: f32 = 40.0;
+const _TEXT_V_MARGIN: f32 = 200.0;
 
 const RECT_LEFT_BUTTON: Rectangle = Rectangle {
     pos: Vector {
@@ -662,35 +662,71 @@ impl State for AppState {
         }
 
         let optional_image: Option<&mut Asset<Image>> =
-            if self.frame_count > TITLE && self.frame_count < INTRO_A {
+            if self.frame_count >= TITLE && self.frame_count < INTRO_A {
+                if self.frame_count == TITLE {
+                    self.log_result("Image:TITLE", Ok(()));
+                }
                 Some(&mut self.help_1)
             } else if self.frame_count >= INTRO_A && self.frame_count < INTRO_B {
+                if self.frame_count == INTRO_A {
+                    self.log_result("Image:INTRO_A", Ok(()));
+                }
                 Some(&mut self.help_2)
             } else if self.frame_count >= INTRO_B && self.frame_count < INTRO_C {
+                if self.frame_count == INTRO_B {
+                    self.log_result("Image:INTRO_B", Ok(()));
+                }
                 Some(&mut self.help_3)
             } else if self.frame_count >= INTRO_C && self.frame_count < NEGATIVE_A {
+                if self.frame_count == INTRO_C {
+                    self.log_result("Image:INTRO_C", Ok(()));
+                }
                 Some(&mut self.help_4)
             // } else if self.frame_count >= NEGATIVE_A && self.frame_count < NEGATIVE_B {
             //     Some(&mut self.help_5)
             } else if self.frame_count >= NEGATIVE_B && self.frame_count < BREATHING_A {
+                if self.frame_count == NEGATIVE_B {
+                    self.log_result("Image:NEGATIVE_B", Ok(()));
+                }
                 Some(&mut self.help_5)
             // } else if self.frame_count >= BREATHING_A && self.frame_count < BREATHING_B {
             //     Some(&mut self.help_)
             } else if self.frame_count >= BREATHING_B && self.frame_count < POSITIVE_A {
+                if self.frame_count == BREATHING_B {
+                    self.log_result("Image:BREATHING_B", Ok(()));
+                }
                 Some(&mut self.help_6)
             // } else if self.frame_count >= POSITIVE_A && self.frame_count < POSITIVE_B {
             //     Some(&mut self.help_)
             // } else if self.frame_count >= POSITIVE_B && self.frame_count < FREE_RIDE_A {
             //     Some(&mut self.help_)
             } else if self.frame_count >= FREE_RIDE_AA && self.frame_count < FREE_RIDE_AB {
+                if self.frame_count == FREE_RIDE_AA {
+                    self.log_result("Image:FREE_RIDE_AA", Ok(()));
+                }
                 Some(&mut self.help_7a)
             } else if self.frame_count >= FREE_RIDE_AB && self.frame_count < FREE_RIDE_AC {
+                if self.frame_count == FREE_RIDE_AB {
+                    self.log_result("Image:FREE_RIDE_AB", Ok(()));
+                }
                 Some(&mut self.help_7b)
-            } else if self.frame_count >= FREE_RIDE_AC && self.frame_count < FREE_RIDE_AA {
+            } else if self.frame_count >= FREE_RIDE_AC && self.frame_count < FREE_RIDE_AD {
+                if self.frame_count == FREE_RIDE_AC {
+                    self.log_result("Image:FREE_RIDE_AC", Ok(()));
+                }
                 Some(&mut self.help_7c)
-            } else if self.frame_count >= FREE_RIDE_AA && self.frame_count < FREE_RIDE_AB {
-                Some(&mut self.help_8)
+            // } else if self.frame_count >= FREE_RIDE_AA && self.frame_count < FREE_RIDE_AB {
+            //     if self.frame_count == TITLE {
+            //         self.log_result("Image:TITLE", Result::OK);
+            //     }
+            //     Some(&mut self.help_8)
             } else if self.frame_count >= THANK_YOU {
+                if self.frame_count == FREE_RIDE_AC {
+                    self.log_result("Image:FREE_RIDE_AC", Ok(()));
+                }
+                if self.frame_count == TITLE {
+                    self.log_result("Image:TITLE", Ok(()));
+                }
                 Some(&mut self.help_9)
             } else {
                 None
@@ -769,14 +805,18 @@ impl State for AppState {
                 DisplayType::Mandala => {
                     self.draw_mandala(self.mandala_on, window);
                     if self.local_frame < IMAGE_DURATION_FRAMES {
+                        if self.local_frame == 0 {
+                            self.log_result("LocalFrame:NEGATIVE", Ok(()));
+                        }
                         self.negative_images.draw(self.image_index_negative, window);
                         self.local_frame += 1;
                     } else if self.local_frame < IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL {
-                        //TODO Interstitial interval
+                        if self.local_frame == IMAGE_DURATION_FRAMES {
+                            self.log_result("LocalFrame:END_NEGATIVE", Ok(()));
+                        }
                         self.local_frame += 1;
                     } else {
                         self.mandala_on = true;
-                        //println!("ELSE: {}", self.local_frame);
                         self.local_frame *= 0;
                         self.image_index_negative += 1 as usize;
                     }
@@ -805,10 +845,15 @@ impl State for AppState {
                 DisplayType::Mandala => {
                     self.draw_mandala(self.mandala_on, window);
                     if self.local_frame < IMAGE_DURATION_FRAMES {
+                        if self.local_frame == 0 {
+                            self.log_result("LocalFrame:POSITIVE", Ok(()));
+                        }
                         self.positive_images.draw(self.image_index_positive, window);
                         self.local_frame += 1;
                     } else if self.local_frame < IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL {
-                        //TODO Interstitial interval
+                        if self.local_frame == IMAGE_DURATION_FRAMES {
+                            self.log_result("LocalFrame:END_POSITIVE", Ok(()));
+                        }
                         self.local_frame += 1;
                     } else {
                         self.mandala_on = true;
