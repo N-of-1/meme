@@ -882,7 +882,7 @@ mod tests {
         let s = date_time_filename_format(current_time);
         println!("{}", s);
 
-        assert_eq!(24, s.len());
+        assert_eq!(23, s.len());
     }
 
     #[test]
@@ -891,6 +891,6 @@ mod tests {
         let s = date_time_csv_format(current_time);
         println!("{}", s);
 
-        assert_eq!(24, s.len());
+        assert_eq!(23, s.len());
     }
 }

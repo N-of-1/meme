@@ -60,22 +60,18 @@ const UPS: u64 = 60; // Updates per second
 const TITLE: u64 = 4 * FPS;
 const INTRO_A: u64 = TITLE + 25 * FPS; // INTRO
 const INTRO_B: u64 = INTRO_A + 6 * FPS;
-const INTRO_C: u64 = INTRO_B + 8 * FPS;
-const NEGATIVE_A: u64 = INTRO_C + 22 * FPS; // TASK 1
-const NEGATIVE_B: u64 = NEGATIVE_A + 116 * FPS; // Change 116 to 80
-const BREATHING_A: u64 = NEGATIVE_B + 10 * FPS; // TASK 2
-const BREATHING_B: u64 = BREATHING_A + 120 * FPS;
-const POSITIVE_A: u64 = BREATHING_B + 19 * FPS; // TASK 3
-const POSITIVE_B: u64 = POSITIVE_A + 90 * FPS; // Change 120 to 80
-const FREE_RIDE_AA: u64 = POSITIVE_B + (0.5 * FPS as f32) as u64; // TASK 4
-const FREE_RIDE_AB: u64 = FREE_RIDE_AA + (0.5 * FPS as f32) as u64;
-const FREE_RIDE_AC: u64 = FREE_RIDE_AB + (0.5 * FPS as f32) as u64;
-const FREE_RIDE_AD: u64 = FREE_RIDE_AC + 17 * FPS;
-const FREE_RIDE_B: u64 = FREE_RIDE_AD + 70 * FPS; // (same image)
-const FREE_RIDE_C: u64 = FREE_RIDE_B + 10 * FPS; // (same image)
-const THANK_YOU: u64 = FREE_RIDE_C + 9 * FPS; // THANK YOU
+const INTRO_C: u64 = INTRO_B + 8 * FPS; // TASK 1
+const NEGATIVE_A: u64 = INTRO_C + 22 * FPS;
+const NEGATIVE_B: u64 = NEGATIVE_A + 116 * FPS; // TASK 2
+const BREATHING_A: u64 = NEGATIVE_B + 10 * FPS;
+const BREATHING_B: u64 = BREATHING_A + 120 * FPS; // TASK 3
+const POSITIVE_A: u64 = BREATHING_B + 19 * FPS;
+const POSITIVE_B: u64 = POSITIVE_A + 119 * FPS; // TASK 4
+const FREE_RIDE_A: u64 = POSITIVE_B + 19 * FPS;
+const FREE_RIDE_B: u64 = FREE_RIDE_A + 70 * FPS; // (same image)
+const THANK_YOU: u64 = FREE_RIDE_B + 9 * FPS; // THANK YOU
 
-const IMAGE_LOGO: &str = "Nof1-logo.png";
+const IMAGE_LOGO: &str = "0_nof1_logo.png";
 const MANDALA_VALENCE_PETAL_SVG_NAME: &str = "mandala_valence_petal.svg";
 const MANDALA_AROUSAL_PETAL_SVG_NAME: &str = "mandala_arousal_petal.svg";
 const MANDALA_BREATH_PETAL_SVG_NAME: &str = "mandala_breath_petal.svg";
@@ -222,7 +218,6 @@ struct AppState {
     sound_e5: Asset<Sound>,
     sound_e6: Asset<Sound>,
     sound_e7: Asset<Sound>,
-    sound_e8: Asset<Sound>,
     sound_e9: Asset<Sound>,
     help_1: Asset<Image>,
     help_2: Asset<Image>,
@@ -230,11 +225,8 @@ struct AppState {
     help_4: Asset<Image>,
     help_5: Asset<Image>,
     help_6: Asset<Image>,
-    help_7a: Asset<Image>,
-    help_7b: Asset<Image>,
-    help_7c: Asset<Image>,
+    help_7: Asset<Image>,
     help_8: Asset<Image>,
-    help_9: Asset<Image>,
     left_button_color: Color,
     right_button_color: Color,
     mandala_valence: Mandala,
@@ -368,7 +360,6 @@ impl State for AppState {
         let sound_e5 = Asset::new(Sound::load("F5.mp3"));
         let sound_e6 = Asset::new(Sound::load("F6.mp3"));
         let sound_e7 = Asset::new(Sound::load("F7.mp3"));
-        let sound_e8 = Asset::new(Sound::load("F8.mp3"));
         let sound_e9 = Asset::new(Sound::load("F9.mp3"));
 
         let help_1 = Asset::new(Image::load("1fi.png"));
@@ -377,13 +368,9 @@ impl State for AppState {
         let help_4 = Asset::new(Image::load("4fi.png"));
         let help_5 = Asset::new(Image::load("5fi.png"));
         let help_6 = Asset::new(Image::load("6fi.png"));
-        let help_7a = Asset::new(Image::load("7a_fi.png"));
-        let help_7b = Asset::new(Image::load("7b_fi.png"));
-        let help_7c = Asset::new(Image::load("7c_fi.png"));
+        let help_7 = Asset::new(Image::load("7_fi.png"));
         let help_8 = Asset::new(Image::load("8fi.png"));
-        let help_9 = Asset::new(Image::load("9fi.png"));
 
-        //        let sound_blah = Asset::new(Sound::load(SOUND_GUIDANCE));
         let (rx_eeg, muse_model) = muse_model::MuseModel::new(start_date_time);
         let mandala_valence_state_open = MandalaState::new(
             COLOR_VALENCE_MANDALA_OPEN,
@@ -476,7 +463,6 @@ impl State for AppState {
             sound_e5,
             sound_e6,
             sound_e7,
-            sound_e8,
             sound_e9,
             help_1,
             help_2,
@@ -484,11 +470,8 @@ impl State for AppState {
             help_4,
             help_5,
             help_6,
-            help_7a,
-            help_7b,
-            help_7c,
+            help_7,
             help_8,
-            help_9,
             left_button_color: COLOR_CLEAR,
             right_button_color: COLOR_CLEAR,
             eeg_view_state,
@@ -661,62 +644,70 @@ impl State for AppState {
         // if self.frame_count == FREE_RIDE_AB {
         //     let _result = self.sound_e8.execute(|sound| sound.play());
         // }
-        if self.frame_count == FREE_RIDE_C {
+        if self.frame_count == THANK_YOU {
             let result = self.sound_e9.execute(|sound| sound.play());
-            self.log_result(current_time, "Sound:FREE_RIDE_C", result);
+            self.log_result(current_time, "Sound:THANK_YOU", result);
         }
 
         let optional_image: Option<&mut Asset<Image>> =
             if self.frame_count >= TITLE && self.frame_count < INTRO_A {
+                // TITLE SLIDE
                 if self.frame_count == TITLE {
                     self.log_result(current_time, "Image:TITLE", Ok(()));
                 }
                 Some(&mut self.help_1)
             } else if self.frame_count >= INTRO_A && self.frame_count < INTRO_B {
+                // MENTAL STATES VISUALIZED 1/2
                 if self.frame_count == INTRO_A {
                     self.log_result(current_time, "Image:INTRO_A", Ok(()));
                 }
                 Some(&mut self.help_2)
             } else if self.frame_count >= INTRO_B && self.frame_count < INTRO_C {
+                // MENTAL STATES VISUALIZED 2/2
                 if self.frame_count == INTRO_B {
                     self.log_result(current_time, "Image:INTRO_B", Ok(()));
                 }
                 Some(&mut self.help_3)
             } else if self.frame_count >= INTRO_C && self.frame_count < NEGATIVE_A {
+                // TASK 1 SLIDE
                 if self.frame_count == INTRO_C {
                     self.log_result(current_time, "Image:INTRO_C", Ok(()));
                 }
                 Some(&mut self.help_4)
             } else if self.frame_count >= NEGATIVE_B && self.frame_count < BREATHING_A {
+                // TASK 2 SLIDE
                 if self.frame_count == NEGATIVE_B {
                     self.log_result(current_time, "Image:NEGATIVE_B", Ok(()));
                 }
                 Some(&mut self.help_5)
             } else if self.frame_count >= BREATHING_B && self.frame_count < POSITIVE_A {
+                // TASK 3 SLIDE
                 if self.frame_count == BREATHING_B {
                     self.log_result(current_time, "Image:BREATHING_B", Ok(()));
                 }
                 Some(&mut self.help_6)
-            } else if self.frame_count >= FREE_RIDE_AA && self.frame_count < FREE_RIDE_AB {
-                if self.frame_count == FREE_RIDE_AA {
-                    self.log_result(current_time, "Image:FREE_RIDE_AA", Ok(()));
+            } else if self.frame_count >= POSITIVE_B && self.frame_count < FREE_RIDE_A {
+                // TASK 4 SLIDE
+                if self.frame_count == FREE_RIDE_A {
+                    self.log_result(current_time, "Image:FREE_RIDE_A", Ok(()));
                 }
-                Some(&mut self.help_7a)
-            } else if self.frame_count >= FREE_RIDE_AB && self.frame_count < FREE_RIDE_AC {
-                if self.frame_count == FREE_RIDE_AB {
-                    self.log_result(current_time, "Image:FREE_RIDE_AB", Ok(()));
-                }
-                Some(&mut self.help_7b)
-            } else if self.frame_count >= FREE_RIDE_AC && self.frame_count < FREE_RIDE_AD {
-                if self.frame_count == FREE_RIDE_AC {
-                    self.log_result(current_time, "Image:FREE_RIDE_AC", Ok(()));
-                }
-                Some(&mut self.help_7c)
+                Some(&mut self.help_7)
+            // } else if self.frame_count >= FREE_RIDE_AB && self.frame_count < FREE_RIDE_AC {
+            //     if self.frame_count == FREE_RIDE_AB {
+            //         self.log_result(current_time, "Image:FREE_RIDE_AB", Ok(()));
+            //     }
+            //     Some(&mut self.help_7b)
+            // } else if self.frame_count >= FREE_RIDE_AC && self.frame_count < FREE_RIDE_AD {
+            //     if self.frame_count == FREE_RIDE_AC {
+            //         self.log_result(current_time, "Image:FREE_RIDE_AC", Ok(()));
+            //     }
+            //     Some(&mut self.help_7c)
             } else if self.frame_count >= THANK_YOU {
+                // SLIDE THANK YOU
                 if self.frame_count == THANK_YOU {
                     self.log_result(current_time, "Image:THANK_YOU", Ok(()));
                 }
-                Some(&mut self.help_9)
+                Some(&mut self.help_8)
             } else {
                 None
             };
@@ -744,7 +735,7 @@ impl State for AppState {
                 window.draw(
                     &image
                         .area()
-                        .with_center((SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 4.0)),
+                        .with_center((SCREEN_SIZE.0 / 4.0, SCREEN_SIZE.1 / 4.0)),
                     Img(&image),
                 );
                 Ok(())
@@ -791,7 +782,7 @@ impl State for AppState {
         // self.right_button_color = COLOR_BUTTON;
 
         // NEGATIVE MANDALA
-        if self.frame_count > NEGATIVE_A && self.frame_count < NEGATIVE_B {
+        if self.frame_count >= NEGATIVE_A && self.frame_count < NEGATIVE_B {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
                     self.draw_mandala(seconds_since_start, self.mandala_on, window);
@@ -818,7 +809,7 @@ impl State for AppState {
         };
 
         // BREATHING MANDALA
-        if self.frame_count > BREATHING_A && self.frame_count < BREATHING_B {
+        if self.frame_count >= BREATHING_A && self.frame_count < BREATHING_B {
             self.mandala_on = false;
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
@@ -833,7 +824,7 @@ impl State for AppState {
         };
 
         // POSITIIVE_MANDALA
-        if self.frame_count > POSITIVE_A && self.frame_count < POSITIVE_B {
+        if self.frame_count >= POSITIVE_A && self.frame_count < POSITIVE_B {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
                     self.draw_mandala(seconds_since_start, self.mandala_on, window);
@@ -861,7 +852,7 @@ impl State for AppState {
         };
 
         // FREE_RIDE MANDALA
-        if self.frame_count > FREE_RIDE_AC && self.frame_count < THANK_YOU {
+        if self.frame_count >= FREE_RIDE_B && self.frame_count < THANK_YOU {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
                     self.draw_mandala(seconds_since_start, self.mandala_on, window);
