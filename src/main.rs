@@ -21,6 +21,7 @@ extern crate quicksilver;
 
 use crate::eeg_view::ImageSet;
 use arr_macro::arr;
+use chrono::{DateTime, Local};
 use csv::Writer;
 use eeg_view::EegViewState;
 use log::{error, info};
@@ -37,7 +38,6 @@ use quicksilver::{
 };
 use std::fs::File;
 use std::sync::mpsc::Receiver;
-use std::time::{Duration, Instant};
 
 mod eeg_view;
 mod muse_model;
@@ -84,8 +84,8 @@ const MANDALA_TRANSITION_DURATION: f32 = 0.5;
 
 const FONT_EXTRA_BOLD: &str = "WorkSans-ExtraBold.ttf";
 const FONT_MULI: &str = "Muli.ttf";
-const FONT_EXTRA_BOLD_SIZE: f32 = 72.0;
-const FONT_MULI_SIZE: f32 = 40.0;
+const _FONT_EXTRA_BOLD_SIZE: f32 = 72.0;
+const _FONT_MULI_SIZE: f32 = 40.0;
 const FONT_GRAPH_LABEL_SIZE: f32 = 40.0;
 const FONT_EEG_LABEL_SIZE: f32 = 30.0;
 
@@ -93,7 +93,7 @@ const SOUND_CLICK: &str = "click.ogg";
 const _SOUND_GUIDANCE: &str = "Meet Your Mind Leo's voice 200224.mp3";
 
 const STR_TITLE: &str = "Meme Machine";
-const STR_HELP_TEXT: &str = "First relax and watch your mind calm\n\nYou will then be shown some images. Press the left and right images to tell us if they are\nfamiliar and how they make you feel.";
+// const STR_HELP_TEXT: &str = "First relax and watch your mind calm\n\nYou will then be shown some images. Press the left and right images to tell us if they are\nfamiliar and how they make you feel.";
 
 const _COLOR_GREY: Color = Color {
     r: 0.5,
@@ -126,7 +126,7 @@ const COLOR_NOF1_TURQOISE: Color = Color {
     a: 1.0,
 };
 const COLOR_BACKGROUND: Color = Color::BLACK;
-const COLOR_TITLE: Color = COLOR_NOF1_DARK_BLUE;
+const _COLOR_TITLE: Color = COLOR_NOF1_DARK_BLUE;
 const COLOR_EEG_LABEL: Color = COLOR_NOF1_DARK_BLUE;
 const COLOR_TEXT: Color = Color::BLACK;
 const _COLOR_BUTTON: Color = COLOR_NOF1_DARK_BLUE;
@@ -212,9 +212,7 @@ pub trait OscSocket: Sized {
 
 struct AppState {
     frame_count: u64,
-    start_time: Instant,
-    title_text: Asset<Image>,
-    help_text: Asset<Image>,
+    start_time: DateTime<Local>,
     logo: Asset<Image>,
     sound_click: Asset<Sound>,
     sound_e1: Asset<Sound>,
@@ -244,7 +242,7 @@ struct AppState {
     mandala_breath: Mandala,
     muse_model: MuseModel,
     eeg_view_state: EegViewState,
-    _rx_eeg: Receiver<(Duration, muse_model::MuseMessageType)>,
+    _rx_eeg: Receiver<(DateTime<Local>, muse_model::MuseMessageType)>,
     positive_images: ImageSet,
     negative_images: ImageSet,
     image_index_positive: usize,
@@ -283,18 +281,22 @@ impl AppState {
 }
 
 impl AppState {
-    fn seconds_since_start(&self) -> f32 {
-        self.start_time.elapsed().as_nanos() as f32 / 1000000000.0
+    /// Current time relative to start time, as f32, nominally accurate to ns
+    fn seconds_since_start(&self, current_time: DateTime<Local>) -> f32 {
+        let duration = current_time.signed_duration_since(self.start_time);
+        let std_duration = duration.to_std().unwrap();
+        std_duration.as_nanos() as f32 / 1000000000.0
     }
 
-    fn draw_mandala(&mut self, mandala_on: bool, window: &mut Window) {
+    /// Draw the current animated state of a flower-like object to the window
+    fn draw_mandala(&mut self, seconds_since_start: f32, mandala_on: bool, window: &mut Window) {
+        //TODO Pass in seconds_since_start as an argument
         if !mandala_on {
             return;
         }
         let mut mesh = Mesh::new();
 
         let mut shape_renderer = ShapeRenderer::new(&mut mesh, Color::RED);
-        let seconds_since_start = self.seconds_since_start();
         self.mandala_valence
             .draw(seconds_since_start, &mut shape_renderer);
         self.mandala_arousal
@@ -302,26 +304,26 @@ impl AppState {
         window.mesh().extend(&mesh);
     }
 
-    fn draw_breath_mandala(&mut self, current_time: f32, window: &mut Window) {
+    fn draw_breath_mandala(&mut self, current_time: DateTime<Local>, window: &mut Window) {
         let mut mesh = Mesh::new();
-        let breath_state = breathing_sinusoid_10sec(current_time);
+        let seconds_since_start = self.seconds_since_start(current_time);
+        let breath_state = breathing_sinusoid_10sec(seconds_since_start);
         let mut shape_renderer = ShapeRenderer::new(&mut mesh, Color::RED);
-        let seconds_since_start = self.seconds_since_start();
         self.mandala_breath
-            .start_transition(current_time, 0.01, breath_state);
+            .start_transition(seconds_since_start, 0.01, breath_state);
         self.mandala_breath
             .draw(seconds_since_start, &mut shape_renderer);
         window.mesh().extend(&mesh);
     }
 
     /// Add a tag to the output CSV file indicating what happened at runtime
-    fn log_result(&mut self, tag: &str, result: Result<()>) {
+    fn log_result(&mut self, date_time: DateTime<Local>, tag: &str, result: Result<()>) {
         if result.is_ok() {
             let s: &str = &format!("{}:OK", tag);
-            self.muse_model.log_other_now(s);
+            self.muse_model.log_other(date_time, s);
         } else {
             let s: &str = &format!("{}:ERROR", tag);
-            self.muse_model.log_other_now(s);
+            self.muse_model.log_other(date_time, s);
         }
     }
 }
@@ -332,9 +334,10 @@ fn bound_normalized_value(normalized: f32) -> f32 {
 }
 
 /// Create a log of values and events collected during a session
-fn create_log_writer(filename: &str) -> Writer<File> {
-    let current_date_time = muse_model::current_date_time_filename_format();
-    let filename_with_date_time = format!("{} {}", current_date_time, filename);
+fn create_log_writer(start_date_time: DateTime<Local>, filename: &str) -> Writer<File> {
+    let formatted_date_time = muse_model::date_time_filename_format(start_date_time);
+
+    let filename_with_date_time = format!("{} {}", formatted_date_time, filename);
     let writer: Writer<File> =
         Writer::from_path(filename_with_date_time).expect("Could not open CSV file for writing");
 
@@ -343,17 +346,18 @@ fn create_log_writer(filename: &str) -> Writer<File> {
 
 impl State for AppState {
     fn new() -> Result<AppState> {
-        let title_font = Font::load(FONT_EXTRA_BOLD);
-        let help_font = Font::load(FONT_MULI);
-        let title_text = Asset::new(title_font.and_then(|font| {
-            result(font.render(
-                STR_TITLE,
-                &FontStyle::new(FONT_EXTRA_BOLD_SIZE, COLOR_TITLE),
-            ))
-        }));
-        let help_text = Asset::new(help_font.and_then(|font| {
-            result(font.render(STR_HELP_TEXT, &FontStyle::new(FONT_MULI_SIZE, COLOR_TEXT)))
-        }));
+        let start_date_time = Local::now();
+        // let title_font = Font::load(FONT_EXTRA_BOLD);
+        // let help_font = Font::load(FONT_MULI);
+        // let title_text = Asset::new(title_font.and_then(|font| {
+        //     result(font.render(
+        //         STR_TITLE,
+        //         &FontStyle::new(FONT_EXTRA_BOLD_SIZE, COLOR_TITLE),
+        //     ))
+        // }));
+        // let help_text = Asset::new(help_font.and_then(|font| {
+        //     result(font.render(STR_HELP_TEXT, &FontStyle::new(FONT_MULI_SIZE, COLOR_TEXT)))
+        // }));
 
         let logo = Asset::new(Image::load(IMAGE_LOGO));
         let sound_click = Asset::new(Sound::load(SOUND_CLICK));
@@ -380,7 +384,7 @@ impl State for AppState {
         let help_9 = Asset::new(Image::load("9fi.png"));
 
         //        let sound_blah = Asset::new(Sound::load(SOUND_GUIDANCE));
-        let (rx_eeg, muse_model) = muse_model::MuseModel::new();
+        let (rx_eeg, muse_model) = muse_model::MuseModel::new(start_date_time);
         let mandala_valence_state_open = MandalaState::new(
             COLOR_VALENCE_MANDALA_OPEN,
             Transform::rotate(90),
@@ -448,7 +452,7 @@ impl State for AppState {
         mandala_arousal.start_transition(0.0, 3.0, 1.0);
 
         let eeg_view_state = EegViewState::new();
-        let start_time = Instant::now();
+        let start_time = Local::now();
         //println!("Start instant: {:?}", start_time);
         let positive_images = ImageSet::new(r#"positive-images//p"#);
         let negative_images = ImageSet::new(r#"negative-images//n"#);
@@ -460,8 +464,6 @@ impl State for AppState {
         Ok(AppState {
             frame_count: 0,
             start_time,
-            title_text,
-            help_text,
             logo,
             sound_click,
             mandala_valence,
@@ -503,6 +505,7 @@ impl State for AppState {
 
     // This is called UPS times per second
     fn update(&mut self, window: &mut Window) -> Result<()> {
+        let current_time = Local::now();
         // EXIT APP
         #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
         {
@@ -513,7 +516,7 @@ impl State for AppState {
                     .any(|pad| pad[GamepadButton::FaceLeft].is_down())
             {
                 self.muse_model
-                    .log_other_now("Application shutdown by ESC key");
+                    .log_other(current_time, "Application shutdown by ESC key");
                 self.muse_model.flush_all();
                 window.close();
             }
@@ -586,7 +589,7 @@ impl State for AppState {
         let (normalized_valence_option, normalized_arousal_option) =
             self.muse_model.receive_packets();
         if self.frame_count > TITLE {
-            let current_time = self.seconds_since_start();
+            let current_time = self.seconds_since_start(current_time);
             if let Some(normalized_valence) = normalized_valence_option {
                 if normalized_valence.is_finite() {
                     self.mandala_valence.start_transition(
@@ -621,111 +624,97 @@ impl State for AppState {
 
     // This is called FPS times per second
     fn draw(&mut self, window: &mut Window) -> Result<()> {
+        let current_time = Local::now();
+        let seconds_since_start = self.seconds_since_start(current_time);
         let background_color = COLOR_BACKGROUND;
         window.clear(background_color)?;
 
         // THE NAME AT THE TOP OF THE IF STATEMENT IS THE NAME OF THE PREVIOUS STAGE
         if self.frame_count == TITLE {
             let result = self.sound_e1.execute(|sound| sound.play());
-            self.log_result("Sound:TITLE", result);
+            self.log_result(current_time, "Sound:TITLE", result);
         }
         if self.frame_count == INTRO_C {
             let result = self.sound_e2.execute(|sound| sound.play());
-            self.log_result("Sound:INTRO_C", result);
+            self.log_result(current_time, "Sound:INTRO_C", result);
         }
         if self.frame_count == NEGATIVE_A {
             let result = self.sound_e3.execute(|sound| sound.play());
-            self.log_result("Sound:NEGATIVE_A", result);
+            self.log_result(current_time, "Sound:NEGATIVE_A", result);
         }
         if self.frame_count == NEGATIVE_B {
             let result = self.sound_e4.execute(|sound| sound.play());
-            self.log_result("Sound:NEGATIVE_B", result);
+            self.log_result(current_time, "Sound:NEGATIVE_B", result);
         }
         if self.frame_count == BREATHING_B {
             let result = self.sound_e5.execute(|sound| sound.play());
-            self.log_result("Sound:BREATHING_B", result);
+            self.log_result(current_time, "Sound:BREATHING_B", result);
         }
         if self.frame_count == POSITIVE_A {
             let result = self.sound_e6.execute(|sound| sound.play());
-            self.log_result("Sound:POSITIVE_A", result);
+            self.log_result(current_time, "Sound:POSITIVE_A", result);
         }
         if self.frame_count == POSITIVE_B {
             let result = self.sound_e7.execute(|sound| sound.play());
-            self.log_result("Sound:POSITIVE_B", result);
+            self.log_result(current_time, "Sound:POSITIVE_B", result);
         }
         // if self.frame_count == FREE_RIDE_AB {
         //     let _result = self.sound_e8.execute(|sound| sound.play());
         // }
         if self.frame_count == FREE_RIDE_C {
             let result = self.sound_e9.execute(|sound| sound.play());
-            self.log_result(&"Sound:FREE_RIDE_C", result);
+            self.log_result(current_time, "Sound:FREE_RIDE_C", result);
         }
 
         let optional_image: Option<&mut Asset<Image>> =
             if self.frame_count >= TITLE && self.frame_count < INTRO_A {
                 if self.frame_count == TITLE {
-                    self.log_result("Image:TITLE", Ok(()));
+                    self.log_result(current_time, "Image:TITLE", Ok(()));
                 }
                 Some(&mut self.help_1)
             } else if self.frame_count >= INTRO_A && self.frame_count < INTRO_B {
                 if self.frame_count == INTRO_A {
-                    self.log_result("Image:INTRO_A", Ok(()));
+                    self.log_result(current_time, "Image:INTRO_A", Ok(()));
                 }
                 Some(&mut self.help_2)
             } else if self.frame_count >= INTRO_B && self.frame_count < INTRO_C {
                 if self.frame_count == INTRO_B {
-                    self.log_result("Image:INTRO_B", Ok(()));
+                    self.log_result(current_time, "Image:INTRO_B", Ok(()));
                 }
                 Some(&mut self.help_3)
             } else if self.frame_count >= INTRO_C && self.frame_count < NEGATIVE_A {
                 if self.frame_count == INTRO_C {
-                    self.log_result("Image:INTRO_C", Ok(()));
+                    self.log_result(current_time, "Image:INTRO_C", Ok(()));
                 }
                 Some(&mut self.help_4)
-            // } else if self.frame_count >= NEGATIVE_A && self.frame_count < NEGATIVE_B {
-            //     Some(&mut self.help_5)
             } else if self.frame_count >= NEGATIVE_B && self.frame_count < BREATHING_A {
                 if self.frame_count == NEGATIVE_B {
-                    self.log_result("Image:NEGATIVE_B", Ok(()));
+                    self.log_result(current_time, "Image:NEGATIVE_B", Ok(()));
                 }
                 Some(&mut self.help_5)
-            // } else if self.frame_count >= BREATHING_A && self.frame_count < BREATHING_B {
-            //     Some(&mut self.help_)
             } else if self.frame_count >= BREATHING_B && self.frame_count < POSITIVE_A {
                 if self.frame_count == BREATHING_B {
-                    self.log_result("Image:BREATHING_B", Ok(()));
+                    self.log_result(current_time, "Image:BREATHING_B", Ok(()));
                 }
                 Some(&mut self.help_6)
-            // } else if self.frame_count >= POSITIVE_A && self.frame_count < POSITIVE_B {
-            //     Some(&mut self.help_)
-            // } else if self.frame_count >= POSITIVE_B && self.frame_count < FREE_RIDE_A {
-            //     Some(&mut self.help_)
             } else if self.frame_count >= FREE_RIDE_AA && self.frame_count < FREE_RIDE_AB {
                 if self.frame_count == FREE_RIDE_AA {
-                    self.log_result("Image:FREE_RIDE_AA", Ok(()));
+                    self.log_result(current_time, "Image:FREE_RIDE_AA", Ok(()));
                 }
                 Some(&mut self.help_7a)
             } else if self.frame_count >= FREE_RIDE_AB && self.frame_count < FREE_RIDE_AC {
                 if self.frame_count == FREE_RIDE_AB {
-                    self.log_result("Image:FREE_RIDE_AB", Ok(()));
+                    self.log_result(current_time, "Image:FREE_RIDE_AB", Ok(()));
                 }
                 Some(&mut self.help_7b)
             } else if self.frame_count >= FREE_RIDE_AC && self.frame_count < FREE_RIDE_AD {
                 if self.frame_count == FREE_RIDE_AC {
-                    self.log_result("Image:FREE_RIDE_AC", Ok(()));
+                    self.log_result(current_time, "Image:FREE_RIDE_AC", Ok(()));
                 }
                 Some(&mut self.help_7c)
-            // } else if self.frame_count >= FREE_RIDE_AA && self.frame_count < FREE_RIDE_AB {
-            //     if self.frame_count == TITLE {
-            //         self.log_result("Image:TITLE", Result::OK);
-            //     }
-            //     Some(&mut self.help_8)
             } else if self.frame_count >= THANK_YOU {
-                if self.frame_count == FREE_RIDE_AC {
-                    self.log_result("Image:FREE_RIDE_AC", Ok(()));
-                }
-                if self.frame_count == TITLE {
-                    self.log_result("Image:TITLE", Ok(()));
+                if self.frame_count == THANK_YOU {
+                    self.log_result(current_time, "Image:THANK_YOU", Ok(()));
                 }
                 Some(&mut self.help_9)
             } else {
@@ -738,7 +727,7 @@ impl State for AppState {
                     window.draw(
                         &image
                             .area()
-                            .with_center((SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 4.0)),
+                            .with_center((SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 2.0)),
                         Img(&image),
                     );
                     Ok(())
@@ -748,7 +737,7 @@ impl State for AppState {
         }
 
         if self.frame_count < TITLE {
-            self.draw_mandala(self.mandala_on, window);
+            self.draw_mandala(seconds_since_start, self.mandala_on, window);
 
             // LOGO
             self.logo.execute(|image| {
@@ -800,19 +789,21 @@ impl State for AppState {
         //     Ok(())
         // })?;
         // self.right_button_color = COLOR_BUTTON;
+
+        // NEGATIVE MANDALA
         if self.frame_count > NEGATIVE_A && self.frame_count < NEGATIVE_B {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
-                    self.draw_mandala(self.mandala_on, window);
+                    self.draw_mandala(seconds_since_start, self.mandala_on, window);
                     if self.local_frame < IMAGE_DURATION_FRAMES {
                         if self.local_frame == 0 {
-                            self.log_result("LocalFrame:NEGATIVE", Ok(()));
+                            self.log_result(current_time, "LocalFrame:NEGATIVE", Ok(()));
                         }
                         self.negative_images.draw(self.image_index_negative, window);
                         self.local_frame += 1;
                     } else if self.local_frame < IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL {
                         if self.local_frame == IMAGE_DURATION_FRAMES {
-                            self.log_result("LocalFrame:END_NEGATIVE", Ok(()));
+                            self.log_result(current_time, "LocalFrame:END_NEGATIVE", Ok(()));
                         }
                         self.local_frame += 1;
                     } else {
@@ -826,13 +817,14 @@ impl State for AppState {
             }
         };
 
+        // BREATHING MANDALA
         if self.frame_count > BREATHING_A && self.frame_count < BREATHING_B {
             self.mandala_on = false;
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
-                    self.draw_mandala(self.mandala_on, window);
+                    //self.draw_mandala(seconds_since_start, self.mandala_on, window);
                     // println!("Breathing block!");
-                    self.draw_breath_mandala(self.seconds_since_start(), window);
+                    self.draw_breath_mandala(current_time, window);
                     self.mandala_on = true;
                     self.local_frame = 0;
                 }
@@ -840,19 +832,20 @@ impl State for AppState {
             }
         };
 
+        // POSITIIVE_MANDALA
         if self.frame_count > POSITIVE_A && self.frame_count < POSITIVE_B {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
-                    self.draw_mandala(self.mandala_on, window);
+                    self.draw_mandala(seconds_since_start, self.mandala_on, window);
                     if self.local_frame < IMAGE_DURATION_FRAMES {
                         if self.local_frame == 0 {
-                            self.log_result("LocalFrame:POSITIVE", Ok(()));
+                            self.log_result(current_time, "LocalFrame:POSITIVE", Ok(()));
                         }
                         self.positive_images.draw(self.image_index_positive, window);
                         self.local_frame += 1;
                     } else if self.local_frame < IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL {
                         if self.local_frame == IMAGE_DURATION_FRAMES {
-                            self.log_result("LocalFrame:END_POSITIVE", Ok(()));
+                            self.log_result(current_time, "LocalFrame:END_POSITIVE", Ok(()));
                         }
                         self.local_frame += 1;
                     } else {
@@ -867,10 +860,11 @@ impl State for AppState {
             }
         };
 
-        if self.frame_count > FREE_RIDE_AB && self.frame_count < THANK_YOU {
+        // FREE_RIDE MANDALA
+        if self.frame_count > FREE_RIDE_AC && self.frame_count < THANK_YOU {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
-                    self.draw_mandala(self.mandala_on, window);
+                    self.draw_mandala(seconds_since_start, self.mandala_on, window);
                 }
                 _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
             }

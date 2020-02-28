@@ -3,16 +3,14 @@ use crate::muse_model::{MuseMessage, MuseMessageType};
 /// running on Android on the same WIFI
 use log::*;
 use std::net::SocketAddr;
-use std::time::{SystemTime, UNIX_EPOCH};
 
+use chrono::Local;
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 use nannou_osc::*;
 
 pub fn parse_muse_packet(addr: SocketAddr, packet: &Packet) -> Vec<MuseMessage> {
     let mut raw_messages = Vec::new();
-    let time = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("System clock is not set correctly");
+    let message_time = Local::now();
 
     packet.clone().unfold(&mut raw_messages);
     let mut muse_messages = Vec::with_capacity(raw_messages.len());
@@ -20,7 +18,7 @@ pub fn parse_muse_packet(addr: SocketAddr, packet: &Packet) -> Vec<MuseMessage> 
     for raw_message in raw_messages {
         if let Some(muse_message_type) = parse_muse_message_type(raw_message) {
             muse_messages.push(MuseMessage {
-                time,
+                message_time,
                 ip_address: addr,
                 muse_message_type,
             });
