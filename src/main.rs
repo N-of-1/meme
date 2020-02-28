@@ -368,7 +368,7 @@ impl State for AppState {
         let help_4 = Asset::new(Image::load("4fi.png"));
         let help_5 = Asset::new(Image::load("5fi.png"));
         let help_6 = Asset::new(Image::load("6fi.png"));
-        let help_7 = Asset::new(Image::load("7_fi.png"));
+        let help_7 = Asset::new(Image::load("7fi.png"));
         let help_8 = Asset::new(Image::load("8fi.png"));
 
         let (rx_eeg, muse_model) = muse_model::MuseModel::new(start_date_time);
@@ -852,7 +852,7 @@ impl State for AppState {
         };
 
         // FREE_RIDE MANDALA
-        if self.frame_count >= FREE_RIDE_B && self.frame_count < THANK_YOU {
+        if self.frame_count >= FREE_RIDE_A && self.frame_count < THANK_YOU {
             match self.muse_model.display_type {
                 DisplayType::Mandala => {
                     self.draw_mandala(seconds_since_start, self.mandala_on, window);
