@@ -1,5 +1,4 @@
 use crate::muse_packet::*;
-use std::time::UNIX_EPOCH;
 
 //#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 
@@ -8,18 +7,14 @@ use std::time::UNIX_EPOCH;
 use std::sync::mpsc::SendError;
 
 // use log::*;
-use chrono::Local;
+use chrono::{DateTime, Local};
 use csv::Writer;
 use num_traits::float::Float;
 use std::f32::consts::E;
 use std::net::SocketAddr;
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
-use std::{
-    convert::From,
-    fs::File,
-    time::{Duration, SystemTime},
-};
+use std::{convert::From, fs::File};
 
 const FOREHEAD_COUNTDOWN: i32 = 5; // 60th of a second counts
 const BLINK_COUNTDOWN: i32 = 5;
@@ -34,8 +29,8 @@ const WINDOW_LENGTH: usize = 10; // Current values is smoothed by most recent X 
 
 const OSC_PORT: u16 = 34254;
 
-const TIME_FORMAT_FOR_FILENAMES: &str = "%Y-%m-%d %H-%M-%S"; // 2020-02-25 09-35-49
-const TIME_FORMAT_FOR_CSV: &str = "%Y-%m-%d %H:%M:%S"; // 2020-02-25 09:35:49
+const TIME_FORMAT_FOR_FILENAMES: &str = "%Y-%m-%d %H-%M-%S%.3f"; // 2020-02-25 09-35-49
+const TIME_FORMAT_FOR_CSV: &str = "%Y-%m-%d %H:%M:%S%.3f"; // 2020-02-25 09:35:49
 
 /// Make it easier to print out the message receiver object for debug purposes
 // struct ReceiverDebug<T> {
@@ -48,28 +43,26 @@ const TIME_FORMAT_FOR_CSV: &str = "%Y-%m-%d %H:%M:%S"; // 2020-02-25 09:35:49
 //     }
 // }
 
-pub fn current_date_time_filename_format() -> String {
-    let date = Local::now();
-    let s: String = format!("{}", date.format(TIME_FORMAT_FOR_FILENAMES));
+/// Format the current instant of time nominally accurate down to milliseconds and without any : to make it compatible with all file system file names
+pub fn date_time_filename_format(date_time: DateTime<Local>) -> String {
+    let s: String = format!("{}", date_time.format(TIME_FORMAT_FOR_FILENAMES));
 
     s
 }
 
-fn date_time_csv_format(_duration: Duration) -> String {
-    current_date_time_csv_format()
-    //TODO Convert duration to current time (they are essentially the same for current use cases)
-    // let date = Local::now();
-    // let s: String = format!("{}", date.format(TIME_FORMAT_FOR_CSV));
-
-    // s
-}
-
-fn current_date_time_csv_format() -> String {
-    let date = Local::now();
-    let s: String = format!("{}", date.format(TIME_FORMAT_FOR_CSV));
+/// Format a Duration (from packet receive time etc) to a string date nominally accurate down to milliseconds in a format sutable for parsing from CSV / Spreadsheets
+fn date_time_csv_format(date_time: DateTime<Local>) -> String {
+    let s: String = format!("{}", date_time.format(TIME_FORMAT_FOR_CSV));
 
     s
 }
+
+// fn current_date_time_csv_format() -> String {
+//     let date = Local::now();
+//     let s: String = format!("{}", date.format(TIME_FORMAT_FOR_CSV));
+
+//     s
+// }
 
 /// The different display modes supported for live screen updates based on Muse EEG signals
 #[derive(Clone, Debug)]
@@ -97,11 +90,11 @@ pub enum MuseMessageType {
     JawClench { clench: bool },
 }
 
-pub type TimedMuseMessage = (Duration, MuseMessageType);
+pub type TimedMuseMessage = (DateTime<Local>, MuseMessageType);
 
 #[derive(Clone, Debug)]
 pub struct MuseMessage {
-    pub time: Duration, // Since UNIX_EPOCH, the beginning of 1970
+    pub message_time: DateTime<Local>, // Since UNIX_EPOCH, the beginning of 1970
     pub ip_address: SocketAddr,
     pub muse_message_type: MuseMessageType,
 }
@@ -287,7 +280,7 @@ where
 
 /// Snapshot of the most recently collected values from Muse EEG headset
 pub struct MuseModel {
-    most_recent_message_receive_time: Duration,
+    most_recent_message_receive_time: DateTime<Local>,
     pub inner_receiver: inner_receiver::InnerMessageReceiver,
     tx_eeg: Sender<TimedMuseMessage>,
     accelerometer: [f32; 3],
@@ -373,36 +366,36 @@ pub fn average_from_front_electrodes(x: &[f32; 4]) -> f32 {
 
 impl MuseModel {
     /// Create a new model for storing received values
-    pub fn new() -> (Receiver<TimedMuseMessage>, MuseModel) {
+    pub fn new(start_time: DateTime<Local>) -> (Receiver<TimedMuseMessage>, MuseModel) {
         let (tx_eeg, rx_eeg): (Sender<TimedMuseMessage>, Receiver<TimedMuseMessage>) =
             mpsc::channel();
 
         let inner_receiver = inner_receiver::InnerMessageReceiver::new();
-        let mut eeg_log_writer = crate::create_log_writer("eeg.csv");
+        let mut eeg_log_writer = crate::create_log_writer(start_time, "eeg.csv");
         eeg_log_writer
             .write_record(&["Time", "TP9", "AF7", "AF8", "TP10"])
             .expect("Can not write EEG");
-        let mut alpha_log_writer = crate::create_log_writer("alpha.csv");
+        let mut alpha_log_writer = crate::create_log_writer(start_time, "alpha.csv");
         alpha_log_writer
             .write_record(&["Time", "Alpha TP9", "Alpha AF7", "Alpha AF8", "Alpha TP10"])
             .expect("Can not write alpha.csv header");
-        let mut beta_log_writer = crate::create_log_writer("beta.csv");
+        let mut beta_log_writer = crate::create_log_writer(start_time, "beta.csv");
         beta_log_writer
             .write_record(&["Time", "Beta TP9", "Beta AF7", "Beta AF8", "Beta TP10"])
             .expect("Can not write beta.csv header");
-        let mut gamma_log_writer = crate::create_log_writer("gamma.csv");
+        let mut gamma_log_writer = crate::create_log_writer(start_time, "gamma.csv");
         gamma_log_writer
             .write_record(&["Time", "Gamma TP9", "Gamma AF7", "Gamma AF8", "Gamma TP10"])
             .expect("Can not write gamma.csv header");
-        let mut delta_log_writer = crate::create_log_writer("delta.csv");
+        let mut delta_log_writer = crate::create_log_writer(start_time, "delta.csv");
         delta_log_writer
             .write_record(&["Time", "Delta TP9", "Delta AF7", "Delta AF8", "Delta TP10"])
             .expect("Can not write delta.csv header");
-        let mut theta_log_writer = crate::create_log_writer("theta.csv");
+        let mut theta_log_writer = crate::create_log_writer(start_time, "theta.csv");
         theta_log_writer
             .write_record(&["Time", "Theta TP9", "Theta AF7", "Theta AF8", "Theta TP10"])
             .expect("Can not write theta.csv header");
-        let mut other_log_writer = crate::create_log_writer("other.csv");
+        let mut other_log_writer = crate::create_log_writer(start_time, "other.csv");
         other_log_writer
             .write_record(&["Time", "Record"])
             .expect("Can not write other.csv header");
@@ -410,7 +403,7 @@ impl MuseModel {
         (
             rx_eeg,
             MuseModel {
-                most_recent_message_receive_time: Duration::from_secs(0),
+                most_recent_message_receive_time: start_time,
                 inner_receiver,
                 tx_eeg,
                 accelerometer: [0.0, 0.0, 0.0],
@@ -451,7 +444,7 @@ impl MuseModel {
         _r = self.eeg_log_writer.flush();
     }
 
-    fn log_alpha(&mut self, receive_time: Duration) {
+    fn log_alpha(&mut self, receive_time: DateTime<Local>) {
         let receive_time_csv_format = date_time_csv_format(receive_time);
         let time = format!("{}", receive_time_csv_format);
         let tp9 = format!("{:?}", self.alpha[TP9]);
@@ -464,7 +457,7 @@ impl MuseModel {
             .expect("Can not add row to alpha.csv");
     }
 
-    fn log_beta(&mut self, receive_time: Duration) {
+    fn log_beta(&mut self, receive_time: DateTime<Local>) {
         let receive_time_csv_format = date_time_csv_format(receive_time);
         let time = format!("{}", receive_time_csv_format);
         let tp9 = format!("{:?}", self.beta[TP9]);
@@ -477,7 +470,7 @@ impl MuseModel {
             .expect("Can not add row to beta.csv");
     }
 
-    fn log_gamma(&mut self, receive_time: Duration) {
+    fn log_gamma(&mut self, receive_time: DateTime<Local>) {
         let receive_time_csv_format = date_time_csv_format(receive_time);
         let time = format!("{}", receive_time_csv_format);
         let tp9 = format!("{:?}", self.gamma[TP9]);
@@ -490,7 +483,7 @@ impl MuseModel {
             .expect("Can not add row to gamma.csv");
     }
 
-    fn log_delta(&mut self, receive_time: Duration) {
+    fn log_delta(&mut self, receive_time: DateTime<Local>) {
         let receive_time_csv_format = date_time_csv_format(receive_time);
         let time = format!("{}", receive_time_csv_format);
         let tp9 = format!("{:?}", self.delta[TP9]);
@@ -503,7 +496,7 @@ impl MuseModel {
             .expect("Can not add row to delta.csv");
     }
 
-    fn log_theta(&mut self, receive_time: Duration) {
+    fn log_theta(&mut self, receive_time: DateTime<Local>) {
         let receive_time_csv_format = date_time_csv_format(receive_time);
         let time = format!("{}", receive_time_csv_format);
         let tp9 = format!("{:?}", self.theta[TP9]);
@@ -516,7 +509,7 @@ impl MuseModel {
             .expect("Can not add row to theta.csv");
     }
 
-    fn log_eeg(&mut self, receive_time: Duration, eeg_values: &[f32; 4]) {
+    fn log_eeg(&mut self, receive_time: DateTime<Local>, eeg_values: &[f32; 4]) {
         let receive_time_csv_format = date_time_csv_format(receive_time);
         let time = format!("{}", receive_time_csv_format);
         let tp9 = format!("{:?}", eeg_values[TP9]);
@@ -529,7 +522,7 @@ impl MuseModel {
             .expect("Can not add row to eeg.csv");
     }
 
-    pub fn log_other(&mut self, receive_time: Duration, other: &str) {
+    pub fn log_other(&mut self, receive_time: DateTime<Local>, other: &str) {
         let receive_time_csv_format = date_time_csv_format(receive_time);
         let time = format!("{}", receive_time_csv_format);
 
@@ -538,12 +531,12 @@ impl MuseModel {
             .expect("Can not add row to other.csv");
     }
 
-    pub fn log_other_now(&mut self, other: &str) {
-        let duration = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("System clock is not set correctly");
-        self.log_other(duration, other);
-    }
+    // pub fn log_other_now(&mut self, other: &str) {
+    //     let duration = SystemTime::now()
+    //         .duration_since(UNIX_EPOCH)
+    //         .expect("System clock is not set correctly");
+    //     self.log_other(duration, other);
+    // }
 
     /// User has recently clamped their teeth, creating myoelectric interference so interrupting the EEG signal
     pub fn is_jaw_clench(&self) -> bool {
@@ -586,7 +579,7 @@ impl MuseModel {
                 || self
                     .handle_muse_message(&muse_message)
                     .expect("Could not receive OSC message");
-            self.most_recent_message_receive_time = muse_message.time;
+            self.most_recent_message_receive_time = muse_message.message_time;
         }
 
         if updated_numeric_values {
@@ -648,73 +641,73 @@ impl MuseModel {
     fn handle_muse_message(
         &mut self,
         muse_message: &MuseMessage,
-    ) -> Result<bool, SendError<(Duration, MuseMessageType)>> {
-        let time = muse_message.time;
+    ) -> Result<bool, SendError<(DateTime<Local>, MuseMessageType)>> {
+        let message_time = muse_message.message_time;
 
         match muse_message.muse_message_type {
             MuseMessageType::Accelerometer { x, y, z } => {
                 self.accelerometer = [x, y, z];
                 let _success = self
                     .tx_eeg
-                    .send((time, MuseMessageType::Accelerometer { x, y, z }));
+                    .send((message_time, MuseMessageType::Accelerometer { x, y, z }));
                 Ok(false)
             }
             MuseMessageType::Gyro { x, y, z } => {
                 self.gyro = [x, y, z];
-                self.log_other(time, &format!("Gyro, {:?}, {:?}, {:?}", x, y, z));
+                self.log_other(message_time, &format!("Gyro, {:?}, {:?}, {:?}", x, y, z));
                 // self.send((time, MuseMessageType::Gyro { x, y, z }));
                 Ok(false)
             }
             MuseMessageType::Horseshoe { a, b, c, d } => {
                 self.horseshoe = [a, b, c, d];
                 self.log_other(
-                    time,
+                    message_time,
                     &format!("Horseshoe, {:?}, {:?}, {:?}, {:?}", a, b, c, d),
                 );
                 // self.send((time, MuseMessageType::Horseshoe { a, b, c, d }));
                 Ok(false)
             }
             MuseMessageType::Eeg { a, b, c, d } => {
-                self.log_eeg(time, &[a, b, c, d]);
+                self.log_eeg(message_time, &[a, b, c, d]);
                 // self.send((time, MuseMessageType::Eeg { a, b, c, d }));
                 Ok(false)
             }
             MuseMessageType::Alpha { a, b, c, d } => {
                 // println!("State updated with alpha: {:?} {:?} {:?} {:?}", a, b, c, d);
                 self.alpha = [a, b, c, d];
-                self.log_alpha(time);
+                self.log_alpha(message_time);
                 // self.send((time, MuseMessageType::Alpha { a, b, c, d }));
                 Ok(true)
             }
             MuseMessageType::Beta { a, b, c, d } => {
                 self.beta = [a, b, c, d];
-                self.log_beta(time);
+                self.log_beta(message_time);
                 // self.send((time, MuseMessageType::Beta { a, b, c, d }));
                 Ok(true)
             }
             MuseMessageType::Gamma { a, b, c, d } => {
                 self.gamma = [a, b, c, d];
-                self.log_gamma(time);
+                self.log_gamma(message_time);
                 // self.send((time, MuseMessageType::Gamma { a, b, c, d }));
                 Ok(true)
             }
             MuseMessageType::Delta { a, b, c, d } => {
                 self.delta = [a, b, c, d];
-                self.log_delta(time);
+                self.log_delta(message_time);
                 // println!("Delta {} {} {} {}", a, b, c, d);
                 // self.send((time, MuseMessageType::Delta { a, b, c, d }));
                 Ok(true)
             }
             MuseMessageType::Theta { a, b, c, d } => {
                 self.theta = [a, b, c, d];
-                self.log_theta(time);
+                self.log_theta(message_time);
                 // println!("Theta {} {} {} {}", a, b, c, d);
                 // self.send((time, MuseMessageType::Theta { a, b, c, d }));
                 Ok(true)
             }
             MuseMessageType::Batt { batt } => {
                 self.batt = batt;
-                self.log_other(time, &format!("Battery, {:?}", batt));
+                self.log_other(message_time, &format!("Battery, {:?}", batt));
                 // self.send((muse_message.time, MuseMessageType::Batt { batt }));
                 Ok(false)
             }
@@ -725,7 +718,7 @@ impl MuseModel {
                 } else {
                     self.touching_forehead_countdown = FOREHEAD_COUNTDOWN;
                 };
-                self.log_other(time, &format!("Battery, {:?}", i));
+                self.log_other(message_time, &format!("Battery, {:?}", i));
                 //                self.send((time, MuseMessageType::TouchingForehead { touch }));
                 Ok(false)
             }
@@ -735,7 +728,7 @@ impl MuseModel {
                     self.blink_countdown = BLINK_COUNTDOWN;
                     i = 1;
                 };
-                self.log_other(time, &format!("Blink, {:?}", i));
+                self.log_other(message_time, &format!("Blink, {:?}", i));
                 //                self.send((time, MuseMessageType::Blink { blink }));
                 Ok(false)
             }
@@ -745,7 +738,7 @@ impl MuseModel {
                     self.jaw_clench_countdown = CLENCH_COUNTDOWN;
                     i = 1;
                 };
-                self.log_other(time, &format!("Clench, {:?}", i));
+                self.log_other(message_time, &format!("Clench, {:?}", i));
                 // self.send((time, MuseMessageType::JawClench { clench }));
                 Ok(false)
             }
@@ -885,17 +878,19 @@ mod tests {
 
     #[test]
     fn test_current_time_formatting_for_filenames() {
-        let s = current_date_time_filename_format();
+        let current_time = Local::now();
+        let s = date_time_filename_format(current_time);
         println!("{}", s);
 
-        assert_eq!(s.len(), 19);
+        assert_eq!(23, s.len());
     }
 
     #[test]
     fn test_current_time_formatting_for_csv() {
-        let s = current_date_time_csv_format();
+        let current_time = Local::now();
+        let s = date_time_csv_format(current_time);
         println!("{}", s);
 
-        assert_eq!(s.len(), 19);
+        assert_eq!(23, s.len());
     }
 }
