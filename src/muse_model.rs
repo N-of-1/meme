@@ -14,7 +14,7 @@ use std::f32::consts::E;
 use std::net::SocketAddr;
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
-use std::{convert::From, fs::File};
+use std::{convert::From, fs::File, slice::Iter, thread};
 
 const FOREHEAD_COUNTDOWN: i32 = 5; // 60th of a second counts
 const BLINK_COUNTDOWN: i32 = 5;
@@ -78,7 +78,7 @@ pub enum MuseMessageType {
     Eeg { a: f32, b: f32, c: f32, d: f32 }, // microVolts
     Accelerometer { x: f32, y: f32, z: f32 },
     Gyro { x: f32, y: f32, z: f32 },
-    Alpha { a: f32, b: f32, c: f32, d: f32 }, // microVolts
+    Alpha { alpha: [f32; 4] },                // microVolts
     Beta { a: f32, b: f32, c: f32, d: f32 },  // microVolts
     Gamma { a: f32, b: f32, c: f32, d: f32 }, // microVolts
     Delta { a: f32, b: f32, c: f32, d: f32 }, // microVolts
@@ -278,59 +278,6 @@ where
     }
 }
 
-/// Snapshot of the most recently collected values from Muse EEG headset
-pub struct MuseModel {
-    most_recent_message_receive_time: DateTime<Local>,
-    pub inner_receiver: inner_receiver::InnerMessageReceiver,
-    tx_eeg: Sender<TimedMuseMessage>,
-    accelerometer: [f32; 3],
-    gyro: [f32; 3],
-    pub alpha: [f32; 4],
-    pub beta: [f32; 4],
-    pub gamma: [f32; 4],
-    pub delta: [f32; 4],
-    pub theta: [f32; 4],
-    batt: i32,
-    horseshoe: [f32; 4],
-    blink_countdown: i32,
-    touching_forehead_countdown: i32,
-    jaw_clench_countdown: i32,
-    pub scale: f32,
-    pub display_type: DisplayType,
-    pub arousal: NormalizedValue<f32>,
-    pub valence: NormalizedValue<f32>,
-    eeg_log_writer: Writer<File>, // Raw EEG values every time they arrive, CSV
-    alpha_log_writer: Writer<File>, // Processed EEG values every time they arrive, CSV
-    beta_log_writer: Writer<File>, // Processed EEG values every time they arrive, CSV
-    gamma_log_writer: Writer<File>, // Processed EEG values every time they arrive, CSV
-    delta_log_writer: Writer<File>, // Processed EEG values every time they arrive, CSV
-    theta_log_writer: Writer<File>, // Processed EEG values every time they arrive, CSV
-    other_log_writer: Writer<File>, // Other values every time they arrive, CSV
-}
-
-fn std_deviation<T>(data: &Vec<T>, mean: Option<T>) -> Option<T>
-where
-    T: Float + From<i16>,
-{
-    match (mean, data.len()) {
-        (Some(data_mean), count) if count > 0 => {
-            let squared_difference_vec: Vec<T> = data
-                .iter()
-                .map(|value| {
-                    let diff = data_mean - (*value as T);
-
-                    diff * diff
-                })
-                .collect();
-
-            let variance_sum = sum(&squared_difference_vec) / (count as i16).into();
-
-            Some(variance_sum.sqrt())
-        }
-        _ => None,
-    }
-}
-
 fn sum<T>(data: &Vec<T>) -> T
 where
     T: Float + From<i16>,
@@ -364,6 +311,133 @@ pub fn average_from_front_electrodes(x: &[f32; 4]) -> f32 {
     //(x[1] + x[2]) / 2.0
 }
 
+/// Create a log of values and events collected during a session
+fn create_log_writer(start_date_time: DateTime<Local>, filename: &str) -> Writer<File> {
+    let formatted_date_time = date_time_filename_format(start_date_time);
+
+    let filename_with_date_time = format!("{} {}", formatted_date_time, filename);
+    let writer: Writer<File> =
+        Writer::from_path(filename_with_date_time).expect("Could not open CSV file for writing");
+
+    writer
+}
+
+fn write_record(
+    time: DateTime<Local>,
+    iter: Iter<f32>,
+    writer: &mut Writer<File>,
+) -> Result<(), String> {
+    let mut vec: Vec<String> = Vec::new();
+    vec.push(date_time_csv_format(time));
+    for val in iter {
+        vec.push(val.to_string());
+    }
+    writer
+        .write_record(vec)
+        .or(Err("Can not write record".to_string()))
+}
+
+fn create_async_alpha_log_writer(
+    start_date_time: DateTime<Local>,
+    filename: &str,
+    header: Iter<&str>,
+) -> Sender<MuseMessage> {
+    let (tx_log, rx_log): (Sender<MuseMessage>, Receiver<MuseMessage>) = mpsc::channel();
+    let filename: String = filename.into();
+    let mut header_vec: Vec<String> = Vec::new();
+    for val in header {
+        header_vec.push(val.to_string());
+    }
+
+    thread::spawn(move || {
+        let mut writer = create_log_writer(start_date_time, &filename);
+        let mut iter: mpsc::Iter<MuseMessage> = rx_log.iter();
+        let mut stream_open = true;
+
+        writer
+            .write_record(header_vec)
+            .expect("Could not write alpha header");
+        while stream_open {
+            match iter.next() {
+                Some(MuseMessage {
+                    message_time,
+                    muse_message_type,
+                    ..
+                }) => match muse_message_type {
+                    MuseMessageType::Alpha { alpha } => {
+                        write_record(message_time, alpha.iter(), &mut writer)
+                            .expect("Could not write alpha record");
+                    }
+                    _ => {
+                        panic!("Unexpected message type, should be ALPHA");
+                    }
+                },
+                None => {
+                    writer
+                        .flush()
+                        .expect(&format!("Can not flush writer: {}", &filename));
+                    stream_open = false;
+                }
+            }
+        }
+    });
+
+    tx_log
+}
+
+/// Snapshot of the most recently collected values from Muse EEG headset
+pub struct MuseModel {
+    most_recent_message_receive_time: DateTime<Local>,
+    pub inner_receiver: inner_receiver::InnerMessageReceiver,
+    tx_eeg: Sender<TimedMuseMessage>,
+    accelerometer: [f32; 3],
+    gyro: [f32; 3],
+    pub alpha: [f32; 4],
+    pub beta: [f32; 4],
+    pub gamma: [f32; 4],
+    pub delta: [f32; 4],
+    pub theta: [f32; 4],
+    batt: i32,
+    horseshoe: [f32; 4],
+    blink_countdown: i32,
+    touching_forehead_countdown: i32,
+    jaw_clench_countdown: i32,
+    pub scale: f32,
+    pub display_type: DisplayType,
+    pub arousal: NormalizedValue<f32>,
+    pub valence: NormalizedValue<f32>,
+    eeg_log_writer: Writer<File>, // Raw EEG values every time they arrive, CSV
+    alpha_log_writer: Sender<MuseMessage>, // Processed EEG values every time they arrive, CSV
+    beta_log_writer: Writer<File>, // Processed EEG values every time they arrive, CSV
+    gamma_log_writer: Writer<File>, // Processed EEG values every time they arrive, CSV
+    delta_log_writer: Writer<File>, // Processed EEG values every time they arrive, CSV
+    theta_log_writer: Writer<File>, // Processed EEG values every time they arrive, CSV
+    other_log_writer: Writer<File>, // Other values every time they arrive, CSV
+}
+
+fn std_deviation<T>(data: &Vec<T>, mean: Option<T>) -> Option<T>
+where
+    T: Float + From<i16>,
+{
+    match (mean, data.len()) {
+        (Some(data_mean), count) if count > 0 => {
+            let squared_difference_vec: Vec<T> = data
+                .iter()
+                .map(|value| {
+                    let diff = data_mean - (*value as T);
+
+                    diff * diff
+                })
+                .collect();
+
+            let variance_sum = sum(&squared_difference_vec) / (count as i16).into();
+
+            Some(variance_sum.sqrt())
+        }
+        _ => None,
+    }
+}
+
 impl MuseModel {
     /// Create a new model for storing received values
     pub fn new(start_time: DateTime<Local>) -> (Receiver<TimedMuseMessage>, MuseModel) {
@@ -371,31 +445,36 @@ impl MuseModel {
             mpsc::channel();
 
         let inner_receiver = inner_receiver::InnerMessageReceiver::new();
-        let mut eeg_log_writer = crate::create_log_writer(start_time, "eeg.csv");
+        let mut eeg_log_writer = create_log_writer(start_time, "eeg.csv");
         eeg_log_writer
             .write_record(&["Time", "TP9", "AF7", "AF8", "TP10"])
             .expect("Can not write EEG");
-        let mut alpha_log_writer = crate::create_log_writer(start_time, "alpha.csv");
-        alpha_log_writer
-            .write_record(&["Time", "Alpha TP9", "Alpha AF7", "Alpha AF8", "Alpha TP10"])
-            .expect("Can not write alpha.csv header");
-        let mut beta_log_writer = crate::create_log_writer(start_time, "beta.csv");
+        //            let mut alpha_log_writer = create_log_writer(start_time, "alpha.csv");
+        //            alpha_log_writer
+        //                .write_record(&["Time", "Alpha TP9", "Alpha AF7", "Alpha AF8", "Alpha TP10"])
+        //                .expect("Can not write alpha.csv header");
+        let alpha_log_writer = create_async_alpha_log_writer(
+            start_time,
+            "alpha.csv",
+            ["Time", "Alpha TP9", "Alpha AF7", "Alpha AF8", "Alpha TP10"].iter(),
+        );
+        let mut beta_log_writer = create_log_writer(start_time, "beta.csv");
         beta_log_writer
             .write_record(&["Time", "Beta TP9", "Beta AF7", "Beta AF8", "Beta TP10"])
             .expect("Can not write beta.csv header");
-        let mut gamma_log_writer = crate::create_log_writer(start_time, "gamma.csv");
+        let mut gamma_log_writer = create_log_writer(start_time, "gamma.csv");
         gamma_log_writer
             .write_record(&["Time", "Gamma TP9", "Gamma AF7", "Gamma AF8", "Gamma TP10"])
             .expect("Can not write gamma.csv header");
-        let mut delta_log_writer = crate::create_log_writer(start_time, "delta.csv");
+        let mut delta_log_writer = create_log_writer(start_time, "delta.csv");
         delta_log_writer
             .write_record(&["Time", "Delta TP9", "Delta AF7", "Delta AF8", "Delta TP10"])
             .expect("Can not write delta.csv header");
-        let mut theta_log_writer = crate::create_log_writer(start_time, "theta.csv");
+        let mut theta_log_writer = create_log_writer(start_time, "theta.csv");
         theta_log_writer
             .write_record(&["Time", "Theta TP9", "Theta AF7", "Theta AF8", "Theta TP10"])
             .expect("Can not write theta.csv header");
-        let mut other_log_writer = crate::create_log_writer(start_time, "other.csv");
+        let mut other_log_writer = create_log_writer(start_time, "other.csv");
         other_log_writer
             .write_record(&["Time", "Record"])
             .expect("Can not write other.csv header");
@@ -435,26 +514,13 @@ impl MuseModel {
 
     /// Write any pending activity to disk
     pub fn flush_all(&mut self) {
-        let mut _r = self.alpha_log_writer.flush();
-        _r = self.beta_log_writer.flush();
+        //TODO How do we close the async channels like alpha writer elegantly?
+        let mut _r = self.beta_log_writer.flush();
         _r = self.gamma_log_writer.flush();
         _r = self.theta_log_writer.flush();
         _r = self.delta_log_writer.flush();
         _r = self.other_log_writer.flush();
         _r = self.eeg_log_writer.flush();
-    }
-
-    fn log_alpha(&mut self, receive_time: DateTime<Local>) {
-        let receive_time_csv_format = date_time_csv_format(receive_time);
-        let time = format!("{}", receive_time_csv_format);
-        let tp9 = format!("{:?}", self.alpha[TP9]);
-        let af7 = format!("{:?}", self.alpha[AF7]);
-        let af8 = format!("{:?}", self.alpha[AF8]);
-        let tp10 = format!("{:?}", self.alpha[TP10]);
-
-        self.alpha_log_writer
-            .write_record(&[&time, &tp9, &af7, &af8, &tp10])
-            .expect("Can not add row to alpha.csv");
     }
 
     fn log_beta(&mut self, receive_time: DateTime<Local>) {
@@ -575,11 +641,11 @@ impl MuseModel {
         let mut normalized_arousal_option = None;
 
         for muse_message in muse_messages {
+            self.most_recent_message_receive_time = muse_message.message_time.clone();
             updated_numeric_values = updated_numeric_values
                 || self
-                    .handle_muse_message(&muse_message)
+                    .handle_muse_message(muse_message)
                     .expect("Could not receive OSC message");
-            self.most_recent_message_receive_time = muse_message.message_time;
         }
 
         if updated_numeric_values {
@@ -615,32 +681,19 @@ impl MuseModel {
     /// Calculate the current arousal value and add it to the length-limited history
     pub fn update_arousal(&mut self) -> bool {
         let abs_arousal = self.calc_abolute_arousal();
-        // println!(
-        //     "   abs arousal: {}   alpha0: {}",
-        //     abs_arousal, self.alpha[0]
-        // );
         self.arousal.set(abs_arousal)
     }
 
     /// Calculate the current valence value and add it to the length-limited history
     pub fn update_valence(&mut self) -> bool {
         let abs_valence = self.calc_absolute_valence();
-        // if abs_valence.is_finite() {
-        //     println!("abs valence: {}   alpha0: {}", abs_valence, self.alpha[0]);
-        // }
         self.valence.set(abs_valence)
     }
-
-    /// Send a value to the connected rx_eeg receiver
-    // fn send(&self, timed_muse_message: TimedMuseMessage) {
-    //     let success = self.tx_eeg.send(timed_muse_message);
-    //     assert!(!success.is_err(), "Can not send message to local receiver");
-    // }
 
     /// Update state based on an incoming message
     fn handle_muse_message(
         &mut self,
-        muse_message: &MuseMessage,
+        muse_message: MuseMessage,
     ) -> Result<bool, SendError<(DateTime<Local>, MuseMessageType)>> {
         let message_time = muse_message.message_time;
 
@@ -672,11 +725,9 @@ impl MuseModel {
                 // self.send((time, MuseMessageType::Eeg { a, b, c, d }));
                 Ok(false)
             }
-            MuseMessageType::Alpha { a, b, c, d } => {
-                // println!("State updated with alpha: {:?} {:?} {:?} {:?}", a, b, c, d);
-                self.alpha = [a, b, c, d];
-                self.log_alpha(message_time);
-                // self.send((time, MuseMessageType::Alpha { a, b, c, d }));
+            MuseMessageType::Alpha { alpha } => {
+                self.alpha = alpha;
+                self.alpha_log_writer.send(muse_message);
                 Ok(true)
             }
             MuseMessageType::Beta { a, b, c, d } => {
