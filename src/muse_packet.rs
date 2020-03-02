@@ -37,12 +37,14 @@ pub fn parse_muse_message_type(raw_message: Message) -> Option<MuseMessageType> 
 
     match (match service {
         "/muse/eeg" => {
-            let a = get_float_from_args(0, &args);
-            let b = get_float_from_args(0, &args);
-            let c = get_float_from_args(0, &args);
-            let d = get_float_from_args(0, &args);
+            let eeg = [
+                get_float_from_args(0, &args),
+                get_float_from_args(0, &args),
+                get_float_from_args(0, &args),
+                get_float_from_args(0, &args),
+            ];
 
-            Some(MuseMessageType::Eeg { a, b, c, d })
+            Some(MuseMessageType::Eeg { eeg })
         }
 
         "/muse/acc" => Some(MuseMessageType::Accelerometer {
@@ -87,10 +89,12 @@ pub fn parse_muse_message_type(raw_message: Message) -> Option<MuseMessageType> 
         }),
 
         "/muse/elements/gamma_absolute" => Some(MuseMessageType::Gamma {
-            a: get_float_from_args(0, &args),
-            b: get_float_from_args(1, &args),
-            c: get_float_from_args(2, &args),
-            d: get_float_from_args(3, &args),
+            gamma: [
+                get_float_from_args(0, &args),
+                get_float_from_args(1, &args),
+                get_float_from_args(2, &args),
+                get_float_from_args(3, &args),
+            ],
         }),
 
         "/muse/elements/delta_absolute" => Some(MuseMessageType::Delta {
@@ -135,14 +139,14 @@ pub fn parse_muse_message_type(raw_message: Message) -> Option<MuseMessageType> 
 
     match service {
         "/muse/eeg" => {
-            let a = get_float_from_args(0, &args);
-            let b = get_float_from_args(0, &args);
-            let c = get_float_from_args(0, &args);
-            let d = get_float_from_args(0, &args);
+            let eeg = [
+                get_float_from_args(0, &args),
+                get_float_from_args(0, &args),
+                get_float_from_args(0, &args),
+                get_float_from_args(0, &args),
+            ];
 
-            // println!("EEG: [{:#?}, {:#?}, {:#?}, {:#?}]", a, b, c, d);
-
-            Some(MuseMessageType::Eeg { a, b, c, d })
+            Some(MuseMessageType::Eeg { eeg })
         }
 
         "/muse/acc" => Some(MuseMessageType::Accelerometer {
@@ -191,12 +195,15 @@ pub fn parse_muse_message_type(raw_message: Message) -> Option<MuseMessageType> 
             Some(MuseMessageType::Beta { beta })
         }
 
-        "/muse/elements/gamma_absolute" => Some(MuseMessageType::Gamma {
-            a: get_float_from_args(0, &args),
-            b: get_float_from_args(1, &args),
-            c: get_float_from_args(2, &args),
-            d: get_float_from_args(3, &args),
-        }),
+        "/muse/elements/gamma_absolute" => {
+            let gamma = [
+                get_float_from_args(0, &args),
+                get_float_from_args(1, &args),
+                get_float_from_args(2, &args),
+                get_float_from_args(3, &args),
+            ];
+            Some(MuseMessageType::Gamma { gamma })
+        }
 
         "/muse/elements/delta_absolute" => Some(MuseMessageType::Delta {
             a: get_float_from_args(0, &args),
