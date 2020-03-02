@@ -407,7 +407,7 @@ pub struct MuseModel {
     pub arousal: NormalizedValue<f32>,
     pub valence: NormalizedValue<f32>,
     eeg_log_writer: Writer<File>, // Raw EEG values every time they arrive, CSV
-    alpha_log_writer: Sender<MuseMessage>, // Processed EEG values every time they arrive, CSV
+    alpha_log_sender: Sender<MuseMessage>, // Processed EEG values every time they arrive, CSV
     beta_log_writer: Writer<File>, // Processed EEG values every time they arrive, CSV
     gamma_log_writer: Writer<File>, // Processed EEG values every time they arrive, CSV
     delta_log_writer: Writer<File>, // Processed EEG values every time they arrive, CSV
@@ -453,7 +453,7 @@ impl MuseModel {
         //            alpha_log_writer
         //                .write_record(&["Time", "Alpha TP9", "Alpha AF7", "Alpha AF8", "Alpha TP10"])
         //                .expect("Can not write alpha.csv header");
-        let alpha_log_writer = create_async_alpha_log_writer(
+        let alpha_log_sender = create_async_alpha_log_writer(
             start_time,
             "alpha.csv",
             ["Time", "Alpha TP9", "Alpha AF7", "Alpha AF8", "Alpha TP10"].iter(),
@@ -502,7 +502,7 @@ impl MuseModel {
                 arousal: NormalizedValue::new(),
                 valence: NormalizedValue::new(),
                 eeg_log_writer,
-                alpha_log_writer,
+                alpha_log_sender,
                 beta_log_writer,
                 gamma_log_writer,
                 delta_log_writer,
@@ -727,7 +727,9 @@ impl MuseModel {
             }
             MuseMessageType::Alpha { alpha } => {
                 self.alpha = alpha;
-                self.alpha_log_writer.send(muse_message);
+                self.alpha_log_sender
+                    .send(muse_message)
+                    .expect("Unable to log alpha");
                 Ok(true)
             }
             MuseMessageType::Beta { a, b, c, d } => {
