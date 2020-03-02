@@ -78,10 +78,12 @@ pub fn parse_muse_message_type(raw_message: Message) -> Option<MuseMessageType> 
         }),
 
         "/muse/elements/beta_absolute" => Some(MuseMessageType::Beta {
-            a: get_float_from_args(0, &args),
-            b: get_float_from_args(1, &args),
-            c: get_float_from_args(2, &args),
-            d: get_float_from_args(3, &args),
+            beta: [
+                get_float_from_args(0, &args),
+                get_float_from_args(1, &args),
+                get_float_from_args(2, &args),
+                get_float_from_args(3, &args),
+            ],
         }),
 
         "/muse/elements/gamma_absolute" => Some(MuseMessageType::Gamma {
@@ -179,12 +181,15 @@ pub fn parse_muse_message_type(raw_message: Message) -> Option<MuseMessageType> 
             Some(MuseMessageType::Alpha { alpha })
         }
 
-        "/muse/elements/beta_absolute" => Some(MuseMessageType::Beta {
-            a: get_float_from_args(0, &args),
-            b: get_float_from_args(1, &args),
-            c: get_float_from_args(2, &args),
-            d: get_float_from_args(3, &args),
-        }),
+        "/muse/elements/beta_absolute" => {
+            let beta = [
+                get_float_from_args(0, &args),
+                get_float_from_args(1, &args),
+                get_float_from_args(2, &args),
+                get_float_from_args(3, &args),
+            ];
+            Some(MuseMessageType::Beta { beta })
+        }
 
         "/muse/elements/gamma_absolute" => Some(MuseMessageType::Gamma {
             a: get_float_from_args(0, &args),
