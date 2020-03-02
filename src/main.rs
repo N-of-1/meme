@@ -340,23 +340,23 @@ impl State for AppState {
 
         let logo = Asset::new(Image::load(IMAGE_LOGO));
         let sound_click = Asset::new(Sound::load(SOUND_CLICK));
-        let sound_e1 = Asset::new(Sound::load("F1.mp3"));
-        let sound_e2 = Asset::new(Sound::load("F2.mp3"));
-        let sound_e3 = Asset::new(Sound::load("F3.mp3"));
-        let sound_e4 = Asset::new(Sound::load("F4.mp3"));
-        let sound_e5 = Asset::new(Sound::load("F5.mp3"));
-        let sound_e6 = Asset::new(Sound::load("F6.mp3"));
-        let sound_e7 = Asset::new(Sound::load("F7.mp3"));
-        let sound_e9 = Asset::new(Sound::load("F9.mp3"));
+        let sound_e1 = Asset::new(Sound::load("E1.mp3"));
+        let sound_e2 = Asset::new(Sound::load("E2.mp3"));
+        let sound_e3 = Asset::new(Sound::load("E3.mp3"));
+        let sound_e4 = Asset::new(Sound::load("E4.mp3"));
+        let sound_e5 = Asset::new(Sound::load("E5.mp3"));
+        let sound_e6 = Asset::new(Sound::load("E6.mp3"));
+        let sound_e7 = Asset::new(Sound::load("E7.mp3"));
+        let sound_e9 = Asset::new(Sound::load("E9.mp3"));
 
-        let help_1 = Asset::new(Image::load("1fi.png"));
-        let help_2 = Asset::new(Image::load("2fi.png"));
-        let help_3 = Asset::new(Image::load("3fi.png"));
-        let help_4 = Asset::new(Image::load("4fi.png"));
-        let help_5 = Asset::new(Image::load("5fi.png"));
-        let help_6 = Asset::new(Image::load("6fi.png"));
-        let help_7 = Asset::new(Image::load("7fi.png"));
-        let help_8 = Asset::new(Image::load("8fi.png"));
+        let help_1 = Asset::new(Image::load("1.png"));
+        let help_2 = Asset::new(Image::load("2.png"));
+        let help_3 = Asset::new(Image::load("3.png"));
+        let help_4 = Asset::new(Image::load("4.png"));
+        let help_5 = Asset::new(Image::load("5.png"));
+        let help_6 = Asset::new(Image::load("6.png"));
+        let help_7 = Asset::new(Image::load("7.png"));
+        let help_8 = Asset::new(Image::load("8.png"));
 
         let (rx_eeg, muse_model) = muse_model::MuseModel::new(start_date_time);
         let mandala_valence_state_open = MandalaState::new(
