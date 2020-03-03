@@ -22,7 +22,6 @@ extern crate quicksilver;
 use crate::eeg_view::ImageSet;
 use arr_macro::arr;
 use chrono::{DateTime, Local};
-use csv::Writer;
 use eeg_view::EegViewState;
 use log::{error, info};
 use mandala::{Mandala, MandalaState};
@@ -36,7 +35,6 @@ use quicksilver::{
     sound::Sound,
     Future, Result,
 };
-use std::fs::File;
 use std::sync::mpsc::Receiver;
 
 mod eeg_view;
@@ -44,6 +42,8 @@ mod muse_model;
 
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 mod muse_packet;
+
+const MULTISAMPLING: u16 = 8; // Graphics rendering oversampling
 
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 const SCREEN_SIZE: (f32, f32) = (1920.0, 1200.0);
@@ -323,17 +323,6 @@ impl AppState {
 #[allow(dead_code)]
 fn bound_normalized_value(normalized: f32) -> f32 {
     normalized.max(3.0).min(-3.0)
-}
-
-/// Create a log of values and events collected during a session
-fn create_log_writer(start_date_time: DateTime<Local>, filename: &str) -> Writer<File> {
-    let formatted_date_time = muse_model::date_time_filename_format(start_date_time);
-
-    let filename_with_date_time = format!("{} {}", formatted_date_time, filename);
-    let writer: Writer<File> =
-        Writer::from_path(filename_with_date_time).expect("Could not open CSV file for writing");
-
-    writer
 }
 
 impl State for AppState {
@@ -926,6 +915,7 @@ fn main() {
         resize: ResizeStrategy::Fit,
         draw_rate,
         update_rate,
+        multisampling: Some(MULTISAMPLING),
         ..Settings::default()
     };
 
