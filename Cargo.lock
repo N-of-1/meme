@@ -1495,8 +1495,8 @@ dependencies = [
 
 [[package]]
 name = "mandala"
-version = "0.8.0"
-source = "git+https://github.com/N-of-1/mandala.git#ac8a9bb73b0ca2bf85ca860f92af3d9adfdb8a4c"
+version = "0.10.0"
+source = "git+https://github.com/N-of-1/mandala.git#1bdda05a1404cb8e4fc8812590aa4694b7490995"
 dependencies = [
  "env_logger",
  "log",
@@ -2319,9 +2319,9 @@ dependencies = [
 
 [[package]]
 name = "regex-syntax"
-version = "0.6.15"
+version = "0.6.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7246cd0a0a6ec2239a5405b2b16e3f404fa0dcc6d28f5f5b877bf80e33e0f294"
+checksum = "1132f845907680735a84409c3bebc64d1364a5683ffbce899550cd09d5eaefc1"
 
 [[package]]
 name = "rodio"

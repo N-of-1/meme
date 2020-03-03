@@ -43,6 +43,8 @@ mod muse_model;
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 mod muse_packet;
 
+const MULTISAMPLING: u16 = 8; // Graphics rendering oversampling
+
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 const SCREEN_SIZE: (f32, f32) = (1920.0, 1200.0);
 #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
@@ -913,6 +915,7 @@ fn main() {
         resize: ResizeStrategy::Fit,
         draw_rate,
         update_rate,
+        multisampling: Some(MULTISAMPLING),
         ..Settings::default()
     };
 
