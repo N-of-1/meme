@@ -1495,8 +1495,8 @@ dependencies = [
 
 [[package]]
 name = "mandala"
-version = "0.8.0"
-source = "git+https://github.com/N-of-1/mandala.git?branch=arm#8946ea6f42c0a9b65eb208c3047f2539f590bf63"
+version = "0.10.0"
+source = "git+https://github.com/N-of-1/mandala.git?branch=arm#5bd7ff45e09737c7bad801befb5cba1a09c55aaa"
 dependencies = [
  "env_logger",
  "log",
