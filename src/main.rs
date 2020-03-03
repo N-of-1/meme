@@ -37,6 +37,10 @@ use quicksilver::{
     Future, Result,
 };
 use std::sync::mpsc::Receiver;
+use thread_priority::{
+    set_thread_priority, thread_native_id, NormalThreadSchedulePolicy, ThreadPriority,
+    ThreadSchedulePolicy,
+};
 
 mod eeg_view;
 mod muse_model;
@@ -437,11 +441,11 @@ impl State for AppState {
         let image_index_negative: usize = 0;
         let local_frame: u64 = 0;
         let mandala_on = true;
-
-        set_thread_priority(
+        let thread_id = thread_native_id();
+        let _r = set_thread_priority(
             thread_id,
             ThreadPriority::Max,
-            ThreadSchedulePolicy::Realtime(RealtimeThreadSchedulePriority::Realtime),
+            ThreadSchedulePolicy::Normal(NormalThreadSchedulePolicy::Normal),
         );
 
         Ok(AppState {
