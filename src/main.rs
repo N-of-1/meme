@@ -18,6 +18,7 @@ extern crate chrono;
 extern crate mandala;
 extern crate num_traits;
 extern crate quicksilver;
+extern crate thread_priority;
 
 use crate::eeg_view::ImageSet;
 use arr_macro::arr;
@@ -436,6 +437,12 @@ impl State for AppState {
         let image_index_negative: usize = 0;
         let local_frame: u64 = 0;
         let mandala_on = true;
+
+        set_thread_priority(
+            thread_id,
+            ThreadPriority::Max,
+            ThreadSchedulePolicy::Realtime(RealtimeThreadSchedulePriority::Realtime),
+        );
 
         Ok(AppState {
             frame_count: 0,
