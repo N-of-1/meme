@@ -13,12 +13,14 @@ extern crate web_logger;
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 extern crate nannou_osc;
 
+#[cfg(target_os = "linux")]
+extern crate thread_priority;
+
 extern crate arr_macro;
 extern crate chrono;
 extern crate mandala;
 extern crate num_traits;
 extern crate quicksilver;
-extern crate thread_priority;
 
 use crate::eeg_view::ImageSet;
 use arr_macro::arr;
@@ -37,10 +39,6 @@ use quicksilver::{
     Future, Result,
 };
 use std::sync::mpsc::Receiver;
-use thread_priority::{
-    set_thread_priority, thread_native_id, NormalThreadSchedulePolicy, ThreadPriority,
-    ThreadSchedulePolicy,
-};
 
 mod eeg_view;
 mod muse_model;
