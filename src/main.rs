@@ -38,7 +38,6 @@ use quicksilver::{
     sound::Sound,
     Future, Result,
 };
-use std::sync::mpsc::Receiver;
 
 mod eeg_view;
 mod muse_model;
@@ -214,7 +213,7 @@ struct AppState {
     start_time: DateTime<Local>,
     logo: Asset<Image>,
     sound_click: Asset<Sound>,
-    sound_e1: Asset<Sound>,
+    sound_e1: Asset<Sound>, //TODO Array/struct/enum of media assets
     sound_e2: Asset<Sound>,
     sound_e3: Asset<Sound>,
     sound_e4: Asset<Sound>,
@@ -237,7 +236,6 @@ struct AppState {
     mandala_breath: Mandala,
     muse_model: MuseModel,
     eeg_view_state: EegViewState,
-    _rx_eeg: Receiver<(DateTime<Local>, muse_model::MuseMessageType)>,
     positive_images: ImageSet,
     negative_images: ImageSet,
     image_index_positive: usize,
@@ -384,7 +382,7 @@ impl State for AppState {
         let help_7 = Asset::new(Image::load("7fi.png"));
         let help_8 = Asset::new(Image::load("8fi.png"));
 
-        let (rx_eeg, muse_model) = muse_model::MuseModel::new(start_date_time);
+        let muse_model = muse_model::MuseModel::new(start_date_time);
         let mandala_valence_state_open = MandalaState::new(
             COLOR_VALENCE_MANDALA_OPEN,
             Transform::rotate(90),
@@ -489,7 +487,6 @@ impl State for AppState {
             left_button_color: COLOR_CLEAR,
             right_button_color: COLOR_CLEAR,
             eeg_view_state,
-            _rx_eeg: rx_eeg,
             muse_model,
             positive_images,
             negative_images,
@@ -514,7 +511,9 @@ impl State for AppState {
             {
                 self.muse_model
                     .log_other(current_time, "Application shutdown by ESC key");
-                self.muse_model.flush_all();
+                self.muse_model
+                    .flush_all()
+                    .expect("Can not flush logs on orderly shutdown");
                 window.close();
             }
         }
