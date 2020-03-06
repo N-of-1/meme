@@ -545,6 +545,7 @@ fn create_async_gamma_log_writer(
 pub struct MuseModel {
     most_recent_message_receive_time: DateTime<Local>,
     pub inner_receiver: inner_receiver::InnerMessageReceiver,
+    receiving_data: bool,
     accelerometer: [f32; 3],
     gyro: [f32; 3],
     pub alpha: [f32; 4],
@@ -597,6 +598,7 @@ impl MuseModel {
     /// Create a new model for storing received values
     pub fn new(start_time: DateTime<Local>) -> MuseModel {
         let inner_receiver = inner_receiver::InnerMessageReceiver::new();
+        let receiving_data = false;
         let eeg_log_sender = create_async_eeg_log_writer(
             start_time,
             "eeg.csv",
@@ -633,6 +635,7 @@ impl MuseModel {
         MuseModel {
             most_recent_message_receive_time: start_time,
             inner_receiver,
+            receiving_data,
             accelerometer: [0.0, 0.0, 0.0],
             gyro: [0.0, 0.0, 0.0],
             alpha: [0.0, 0.0, 0.0, 0.0], // 7.5-13Hz
@@ -657,6 +660,11 @@ impl MuseModel {
             theta_log_writer,
             other_log_writer,
         }
+    }
+
+    /// Valid measurements are flowing from the EEG headset
+    pub fn is_receiving_data(&self) -> bool {
+        self.receiving_data
     }
 
     /// Write any pending activity to disk
@@ -754,6 +762,7 @@ impl MuseModel {
         }
 
         if updated_numeric_values {
+            self.receiving_data = true;
             let _valence_updated = self.update_valence();
             let _arousal_updated = self.update_arousal();
             let vma = self.valence.moving_average();
