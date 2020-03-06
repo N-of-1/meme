@@ -439,11 +439,13 @@ impl State for AppState {
         let image_index_negative: usize = 0;
         let local_frame: u64 = 0;
         let mandala_on = true;
-        let thread_id = thread_native_id();
-        let _r = set_thread_priority(
+        let thread_id = thread_priority::thread_native_id();
+        let _r = thread_priority::set_thread_priority(
             thread_id,
-            ThreadPriority::Max,
-            ThreadSchedulePolicy::Normal(NormalThreadSchedulePolicy::Normal),
+            thread_priority::ThreadPriority::Max,
+            thread_priority::ThreadSchedulePolicy::Normal(
+                thread_priority::NormalThreadSchedulePolicy::Normal,
+            ),
         );
 
         Ok(AppState {
