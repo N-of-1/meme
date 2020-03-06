@@ -13,6 +13,9 @@ extern crate web_logger;
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 extern crate nannou_osc;
 
+#[cfg(target_os = "linux")]
+extern crate thread_priority;
+
 extern crate arr_macro;
 extern crate chrono;
 extern crate mandala;
@@ -42,6 +45,8 @@ mod muse_model;
 
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 mod muse_packet;
+
+const MULTISAMPLING: u16 = 8; // Graphics rendering oversampling
 
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 const SCREEN_SIZE: (f32, f32) = (1920.0, 1200.0);
@@ -323,6 +328,27 @@ fn bound_normalized_value(normalized: f32) -> f32 {
     normalized.max(3.0).min(-3.0)
 }
 
+#[cfg(target_os = "linux")]
+mod max_thread_priority {
+    pub fn maximize_current_thread_priority() {
+        let thread_id = thread_priority::thread_native_id();
+        let _r = thread_priority::set_thread_priority(
+            thread_id,
+            thread_priority::ThreadPriority::Max,
+            thread_priority::ThreadSchedulePolicy::Normal(
+                thread_priority::NormalThreadSchedulePolicy::Normal,
+            ),
+        );
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+mod max_thread_priority {
+    pub fn maximize_current_thread_priority() {
+        // Do nothing- function not currently available
+    }
+}
+
 impl State for AppState {
     fn new() -> Result<AppState> {
         let start_date_time = Local::now();
@@ -427,13 +453,14 @@ impl State for AppState {
 
         let eeg_view_state = EegViewState::new();
         let start_time = Local::now();
-        //println!("Start instant: {:?}", start_time);
         let positive_images = ImageSet::new(r#"positive-images//p"#);
         let negative_images = ImageSet::new(r#"negative-images//n"#);
         let image_index_positive: usize = 0;
         let image_index_negative: usize = 0;
         let local_frame: u64 = 0;
         let mandala_on = true;
+
+        max_thread_priority::maximize_current_thread_priority();
 
         Ok(AppState {
             frame_count: 0,
@@ -913,6 +940,7 @@ fn main() {
         resize: ResizeStrategy::Fit,
         draw_rate,
         update_rate,
+        multisampling: Some(MULTISAMPLING),
         ..Settings::default()
     };
 
