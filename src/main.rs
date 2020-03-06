@@ -328,6 +328,27 @@ fn bound_normalized_value(normalized: f32) -> f32 {
     normalized.max(3.0).min(-3.0)
 }
 
+#[cfg(target_os = "linux")]
+mod max_thread_priority {
+    pub fn maximize_current_thread_priority() {
+        let thread_id = thread_priority::thread_native_id();
+        let _r = thread_priority::set_thread_priority(
+            thread_id,
+            thread_priority::ThreadPriority::Max,
+            thread_priority::ThreadSchedulePolicy::Normal(
+                thread_priority::NormalThreadSchedulePolicy::Normal,
+            ),
+        );
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+mod max_thread_priority {
+    pub fn maximize_current_thread_priority() {
+        // Do nothing- function not currently available
+    }
+}
+
 impl State for AppState {
     fn new() -> Result<AppState> {
         let start_date_time = Local::now();
@@ -432,21 +453,14 @@ impl State for AppState {
 
         let eeg_view_state = EegViewState::new();
         let start_time = Local::now();
-        //println!("Start instant: {:?}", start_time);
         let positive_images = ImageSet::new(r#"positive-images//p"#);
         let negative_images = ImageSet::new(r#"negative-images//n"#);
         let image_index_positive: usize = 0;
         let image_index_negative: usize = 0;
         let local_frame: u64 = 0;
         let mandala_on = true;
-        let thread_id = thread_priority::thread_native_id();
-        let _r = thread_priority::set_thread_priority(
-            thread_id,
-            thread_priority::ThreadPriority::Max,
-            thread_priority::ThreadSchedulePolicy::Normal(
-                thread_priority::NormalThreadSchedulePolicy::Normal,
-            ),
-        );
+
+        max_thread_priority::maximize_current_thread_priority();
 
         Ok(AppState {
             frame_count: 0,
