@@ -1496,7 +1496,7 @@ dependencies = [
 [[package]]
 name = "mandala"
 version = "1.0.0"
-source = "git+https://github.com/N-of-1/mandala.git?branch=arm#079f868b95b56f3c4b9c3f2246cece529d99ff93"
+source = "git+https://github.com/N-of-1/mandala.git#19623acdd0acb0d59e2f06db9a6b96ccfad0eecc"
 dependencies = [
  "env_logger",
  "log",
@@ -2037,7 +2037,7 @@ checksum = "a1d01941d82fa2ab50be1e79e6714289dd7cde78eba4c074bc5a4374f650dfe0"
 [[package]]
 name = "quicksilver"
 version = "0.3.22"
-source = "git+https://github.com/paulirotta/quicksilver.git?branch=arm_image_fix_and_add#61bc36d20a2325ea8598f9047c3e89fddb775a27"
+source = "git+https://github.com/paulirotta/quicksilver.git?branch=image_fix_and_add#b239c93d0d38aa25663d1a5a421fbef5c785ae14"
 dependencies = [
  "base64 0.10.1",
  "dirs",
