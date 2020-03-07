@@ -859,9 +859,11 @@ impl State for AppState {
             //     }
         }
 
-        self.frame_count = self.frame_count + 1;
-        if self.frame_count == std::u64::MAX {
-            self.frame_count = 1;
+        if self.muse_model.is_receiving_data() || self.frame_count < TITLE {
+            self.frame_count = self.frame_count + 1;
+            if self.frame_count == std::u64::MAX {
+                self.frame_count = 1;
+            }
         }
 
         Ok(())
