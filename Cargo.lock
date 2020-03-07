@@ -1534,7 +1534,7 @@ checksum = "3728d817d99e5ac407411fa471ff9800a778d88a24685968b36824eaf4bee400"
 
 [[package]]
 name = "meme"
-version = "0.14.0"
+version = "1.0.0"
 dependencies = [
  "arr_macro",
  "chrono",
