@@ -38,7 +38,6 @@ use quicksilver::{
     sound::Sound,
     Future, Result,
 };
-use std::sync::mpsc::Receiver;
 
 mod eeg_view;
 mod muse_model;
@@ -214,7 +213,7 @@ struct AppState {
     start_time: DateTime<Local>,
     logo: Asset<Image>,
     sound_click: Asset<Sound>,
-    sound_e1: Asset<Sound>,
+    sound_e1: Asset<Sound>, //TODO Array/struct/enum of media assets
     sound_e2: Asset<Sound>,
     sound_e3: Asset<Sound>,
     sound_e4: Asset<Sound>,
@@ -237,7 +236,6 @@ struct AppState {
     mandala_breath: Mandala,
     muse_model: MuseModel,
     eeg_view_state: EegViewState,
-    _rx_eeg: Receiver<(DateTime<Local>, muse_model::MuseMessageType)>,
     positive_images: ImageSet,
     negative_images: ImageSet,
     image_index_positive: usize,
@@ -384,7 +382,7 @@ impl State for AppState {
         let help_7 = Asset::new(Image::load("7fi.png"));
         let help_8 = Asset::new(Image::load("8fi.png"));
 
-        let (rx_eeg, muse_model) = muse_model::MuseModel::new(start_date_time);
+        let muse_model = muse_model::MuseModel::new(start_date_time);
         let mandala_valence_state_open = MandalaState::new(
             COLOR_VALENCE_MANDALA_OPEN,
             Transform::rotate(90),
@@ -489,7 +487,6 @@ impl State for AppState {
             left_button_color: COLOR_CLEAR,
             right_button_color: COLOR_CLEAR,
             eeg_view_state,
-            _rx_eeg: rx_eeg,
             muse_model,
             positive_images,
             negative_images,
@@ -514,7 +511,9 @@ impl State for AppState {
             {
                 self.muse_model
                     .log_other(current_time, "Application shutdown by ESC key");
-                self.muse_model.flush_all();
+                self.muse_model
+                    .flush_all()
+                    .expect("Can not flush logs on orderly shutdown");
                 window.close();
             }
         }
@@ -626,122 +625,110 @@ impl State for AppState {
         let background_color = COLOR_BACKGROUND;
         window.clear(background_color)?;
 
-        // THE NAME AT THE TOP OF THE IF STATEMENT IS THE NAME OF THE PREVIOUS STAGE
-        if self.frame_count == TITLE {
-            let result = self.sound_e1.execute(|sound| sound.play());
-            self.log_result(current_time, "Sound:TITLE", result);
-        }
-        if self.frame_count == INTRO_C {
-            let result = self.sound_e2.execute(|sound| sound.play());
-            self.log_result(current_time, "Sound:INTRO_C", result);
-        }
-        if self.frame_count == NEGATIVE_A {
-            let result = self.sound_e3.execute(|sound| sound.play());
-            self.log_result(current_time, "Sound:NEGATIVE_A", result);
-        }
-        if self.frame_count == NEGATIVE_B {
-            let result = self.sound_e4.execute(|sound| sound.play());
-            self.log_result(current_time, "Sound:NEGATIVE_B", result);
-        }
-        if self.frame_count == BREATHING_B {
-            let result = self.sound_e5.execute(|sound| sound.play());
-            self.log_result(current_time, "Sound:BREATHING_B", result);
-        }
-        if self.frame_count == POSITIVE_A {
-            let result = self.sound_e6.execute(|sound| sound.play());
-            self.log_result(current_time, "Sound:POSITIVE_A", result);
-        }
-        if self.frame_count == POSITIVE_B {
-            let result = self.sound_e7.execute(|sound| sound.play());
-            self.log_result(current_time, "Sound:POSITIVE_B", result);
-        }
-        // if self.frame_count == FREE_RIDE_AB {
-        //     let _result = self.sound_e8.execute(|sound| sound.play());
-        // }
-        if self.frame_count == THANK_YOU {
-            let result = self.sound_e9.execute(|sound| sound.play());
-            self.log_result(current_time, "Sound:THANK_YOU", result);
-        }
-
-        let optional_image: Option<&mut Asset<Image>> =
-            if self.frame_count >= TITLE && self.frame_count < INTRO_A {
-                // TITLE SLIDE
-                if self.frame_count == TITLE {
-                    self.log_result(current_time, "Image:TITLE", Ok(()));
-                }
-                Some(&mut self.help_1)
-            } else if self.frame_count >= INTRO_A && self.frame_count < INTRO_B {
-                // MENTAL STATES VISUALIZED 1/2
-                if self.frame_count == INTRO_A {
-                    self.log_result(current_time, "Image:INTRO_A", Ok(()));
-                }
-                Some(&mut self.help_2)
-            } else if self.frame_count >= INTRO_B && self.frame_count < INTRO_C {
-                // MENTAL STATES VISUALIZED 2/2
-                if self.frame_count == INTRO_B {
-                    self.log_result(current_time, "Image:INTRO_B", Ok(()));
-                }
-                Some(&mut self.help_3)
-            } else if self.frame_count >= INTRO_C && self.frame_count < NEGATIVE_A {
-                // TASK 1 SLIDE
-                if self.frame_count == INTRO_C {
-                    self.log_result(current_time, "Image:INTRO_C", Ok(()));
-                }
-                Some(&mut self.help_4)
-            } else if self.frame_count >= NEGATIVE_B && self.frame_count < BREATHING_A {
-                // TASK 2 SLIDE
-                if self.frame_count == NEGATIVE_B {
-                    self.log_result(current_time, "Image:NEGATIVE_B", Ok(()));
-                }
-                Some(&mut self.help_5)
-            } else if self.frame_count >= BREATHING_B && self.frame_count < POSITIVE_A {
-                // TASK 3 SLIDE
-                if self.frame_count == BREATHING_B {
-                    self.log_result(current_time, "Image:BREATHING_B", Ok(()));
-                }
-                Some(&mut self.help_6)
-            } else if self.frame_count >= POSITIVE_B && self.frame_count < FREE_RIDE_A {
-                // TASK 4 SLIDE
-                if self.frame_count == FREE_RIDE_A {
-                    self.log_result(current_time, "Image:FREE_RIDE_A", Ok(()));
-                }
-                Some(&mut self.help_7)
-            // } else if self.frame_count >= FREE_RIDE_AB && self.frame_count < FREE_RIDE_AC {
-            //     if self.frame_count == FREE_RIDE_AB {
-            //         self.log_result(current_time, "Image:FREE_RIDE_AB", Ok(()));
-            //     }
-            //     Some(&mut self.help_7b)
-            // } else if self.frame_count >= FREE_RIDE_AC && self.frame_count < FREE_RIDE_AD {
-            //     if self.frame_count == FREE_RIDE_AC {
-            //         self.log_result(current_time, "Image:FREE_RIDE_AC", Ok(()));
-            //     }
-            //     Some(&mut self.help_7c)
-            } else if self.frame_count >= THANK_YOU {
-                // SLIDE THANK YOU
-                if self.frame_count == THANK_YOU {
-                    self.log_result(current_time, "Image:THANK_YOU", Ok(()));
-                }
-                Some(&mut self.help_8)
-            } else {
-                None
-            };
-
-        match optional_image {
-            Some(i) => {
-                i.execute(|image| {
-                    window.draw(
-                        &image
-                            .area()
-                            .with_center((SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 2.0)),
-                        Img(&image),
-                    );
-                    Ok(())
-                })?;
+        if self.muse_model.is_receiving_data() {
+            // THE NAME AT THE TOP OF THE IF STATEMENT IS THE NAME OF THE PREVIOUS STAGE
+            if self.frame_count == TITLE {
+                let result = self.sound_e1.execute(|sound| sound.play());
+                self.log_result(current_time, "Sound:TITLE", result);
             }
-            None => (),
-        }
+            if self.frame_count == INTRO_C {
+                let result = self.sound_e2.execute(|sound| sound.play());
+                self.log_result(current_time, "Sound:INTRO_C", result);
+            }
+            if self.frame_count == NEGATIVE_A {
+                let result = self.sound_e3.execute(|sound| sound.play());
+                self.log_result(current_time, "Sound:NEGATIVE_A", result);
+            }
+            if self.frame_count == NEGATIVE_B {
+                let result = self.sound_e4.execute(|sound| sound.play());
+                self.log_result(current_time, "Sound:NEGATIVE_B", result);
+            }
+            if self.frame_count == BREATHING_B {
+                let result = self.sound_e5.execute(|sound| sound.play());
+                self.log_result(current_time, "Sound:BREATHING_B", result);
+            }
+            if self.frame_count == POSITIVE_A {
+                let result = self.sound_e6.execute(|sound| sound.play());
+                self.log_result(current_time, "Sound:POSITIVE_A", result);
+            }
+            if self.frame_count == POSITIVE_B {
+                let result = self.sound_e7.execute(|sound| sound.play());
+                self.log_result(current_time, "Sound:POSITIVE_B", result);
+            }
+            if self.frame_count == THANK_YOU {
+                let result = self.sound_e9.execute(|sound| sound.play());
+                self.log_result(current_time, "Sound:THANK_YOU", result);
+            }
 
-        if self.frame_count < TITLE {
+            let optional_image: Option<&mut Asset<Image>> =
+                if self.frame_count >= TITLE && self.frame_count < INTRO_A {
+                    // TITLE SLIDE
+                    if self.frame_count == TITLE {
+                        self.log_result(current_time, "Image:TITLE", Ok(()));
+                    }
+                    Some(&mut self.help_1)
+                } else if self.frame_count >= INTRO_A && self.frame_count < INTRO_B {
+                    // MENTAL STATES VISUALIZED 1/2
+                    if self.frame_count == INTRO_A {
+                        self.log_result(current_time, "Image:INTRO_A", Ok(()));
+                    }
+                    Some(&mut self.help_2)
+                } else if self.frame_count >= INTRO_B && self.frame_count < INTRO_C {
+                    // MENTAL STATES VISUALIZED 2/2
+                    if self.frame_count == INTRO_B {
+                        self.log_result(current_time, "Image:INTRO_B", Ok(()));
+                    }
+                    Some(&mut self.help_3)
+                } else if self.frame_count >= INTRO_C && self.frame_count < NEGATIVE_A {
+                    // TASK 1 SLIDE
+                    if self.frame_count == INTRO_C {
+                        self.log_result(current_time, "Image:INTRO_C", Ok(()));
+                    }
+                    Some(&mut self.help_4)
+                } else if self.frame_count >= NEGATIVE_B && self.frame_count < BREATHING_A {
+                    // TASK 2 SLIDE
+                    if self.frame_count == NEGATIVE_B {
+                        self.log_result(current_time, "Image:NEGATIVE_B", Ok(()));
+                    }
+                    Some(&mut self.help_5)
+                } else if self.frame_count >= BREATHING_B && self.frame_count < POSITIVE_A {
+                    // TASK 3 SLIDE
+                    if self.frame_count == BREATHING_B {
+                        self.log_result(current_time, "Image:BREATHING_B", Ok(()));
+                    }
+                    Some(&mut self.help_6)
+                } else if self.frame_count >= POSITIVE_B && self.frame_count < FREE_RIDE_A {
+                    // TASK 4 SLIDE
+                    if self.frame_count == FREE_RIDE_A {
+                        self.log_result(current_time, "Image:FREE_RIDE_A", Ok(()));
+                    }
+                    Some(&mut self.help_7)
+                } else if self.frame_count >= THANK_YOU {
+                    // SLIDE THANK YOU
+                    if self.frame_count == THANK_YOU {
+                        self.log_result(current_time, "Image:THANK_YOU", Ok(()));
+                    }
+                    Some(&mut self.help_8)
+                } else {
+                    None
+                };
+
+            match optional_image {
+                Some(i) => {
+                    i.execute(|image| {
+                        window.draw(
+                            &image
+                                .area()
+                                .with_center((SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 2.0)),
+                            Img(&image),
+                        );
+                        Ok(())
+                    })?;
+                }
+                None => (),
+            }
+        }
+        if self.frame_count < TITLE || !self.muse_model.is_receiving_data() {
             self.draw_mandala(seconds_since_start, self.mandala_on, window);
 
             // LOGO
@@ -754,158 +741,129 @@ impl State for AppState {
                 );
                 Ok(())
             })?;
-        }; //else if self.frame_count < INTRO_A {
-           // self.help_1.execute(|image| {
-           //     window.draw(
-           //         &image
-           //             .area()
-           //             .with_center((SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 4.0)),
-           //         Img(&image),
-           //     );
-           //     Ok(())
-           // })?;
+        } else {
+            // RIGHT BUTTON
+            // let right_color = self.right_button_color;
+            // self.sound_click.execute(|_| {
+            //     window.draw(&RECT_RIGHT_BUTTON, Col(right_color));
+            //     Ok(())
+            // })?;
+            // self.right_button_color = COLOR_BUTTON;
 
-        // TITLE
-        // self.title_text.execute(|image| {
-        //     window.draw(
-        //         &image
-        //             .area()
-        //             .with_center((SCREEN_SIZE.0 / 2.0, TITLE_V_MARGIN)),
-        //         Img(&image),
-        //     );
-        //     Ok(())
-        // })?;
-
-        // // TEXT
-        // self.help_text.execute(|image| {
-        //     window.draw(
-        //         &image
-        //             .area()
-        //             .with_center((SCREEN_SIZE.0 / 2.0, TEXT_V_MARGIN)),
-        //         Img(&image),
-        //     );
-        //     Ok(())
-        // })?;
-
-        // RIGHT BUTTON
-        // let right_color = self.right_button_color;
-        // self.sound_click.execute(|_| {
-        //     window.draw(&RECT_RIGHT_BUTTON, Col(right_color));
-        //     Ok(())
-        // })?;
-        // self.right_button_color = COLOR_BUTTON;
-
-        // NEGATIVE MANDALA
-        if self.frame_count >= NEGATIVE_A && self.frame_count < NEGATIVE_B {
-            match self.muse_model.display_type {
-                DisplayType::Mandala => {
-                    self.draw_mandala(seconds_since_start, self.mandala_on, window);
-                    if self.local_frame < IMAGE_DURATION_FRAMES {
-                        if self.local_frame == 0 {
-                            self.log_result(current_time, "LocalFrame:NEGATIVE", Ok(()));
+            // NEGATIVE MANDALA
+            if self.frame_count >= NEGATIVE_A && self.frame_count < NEGATIVE_B {
+                match self.muse_model.display_type {
+                    DisplayType::Mandala => {
+                        self.draw_mandala(seconds_since_start, self.mandala_on, window);
+                        if self.local_frame < IMAGE_DURATION_FRAMES {
+                            if self.local_frame == 0 {
+                                self.log_result(current_time, "LocalFrame:NEGATIVE", Ok(()));
+                            }
+                            self.negative_images.draw(self.image_index_negative, window);
+                            self.local_frame += 1;
+                        } else if self.local_frame < IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL {
+                            if self.local_frame == IMAGE_DURATION_FRAMES {
+                                self.log_result(current_time, "LocalFrame:END_NEGATIVE", Ok(()));
+                            }
+                            self.local_frame += 1;
+                        } else {
+                            self.mandala_on = true;
+                            self.local_frame *= 0;
+                            self.image_index_negative += 1 as usize;
                         }
-                        self.negative_images.draw(self.image_index_negative, window);
-                        self.local_frame += 1;
-                    } else if self.local_frame < IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL {
-                        if self.local_frame == IMAGE_DURATION_FRAMES {
-                            self.log_result(current_time, "LocalFrame:END_NEGATIVE", Ok(()));
-                        }
-                        self.local_frame += 1;
-                    } else {
-                        self.mandala_on = true;
-                        self.local_frame *= 0;
-                        self.image_index_negative += 1 as usize;
                     }
+
+                    _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
                 }
+            };
 
-                _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
-            }
-        };
-
-        // BREATHING MANDALA
-        if self.frame_count >= BREATHING_A && self.frame_count < BREATHING_B {
-            self.mandala_on = false;
-            match self.muse_model.display_type {
-                DisplayType::Mandala => {
-                    //self.draw_mandala(seconds_since_start, self.mandala_on, window);
-                    // println!("Breathing block!");
-                    self.draw_breath_mandala(current_time, window);
-                    self.mandala_on = true;
-                    self.local_frame = 0;
-                }
-                _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
-            }
-        };
-
-        // POSITIIVE_MANDALA
-        if self.frame_count >= POSITIVE_A && self.frame_count < POSITIVE_B {
-            match self.muse_model.display_type {
-                DisplayType::Mandala => {
-                    self.draw_mandala(seconds_since_start, self.mandala_on, window);
-                    if self.local_frame < IMAGE_DURATION_FRAMES {
-                        if self.local_frame == 0 {
-                            self.log_result(current_time, "LocalFrame:POSITIVE", Ok(()));
-                        }
-                        self.positive_images.draw(self.image_index_positive, window);
-                        self.local_frame += 1;
-                    } else if self.local_frame < IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL {
-                        if self.local_frame == IMAGE_DURATION_FRAMES {
-                            self.log_result(current_time, "LocalFrame:END_POSITIVE", Ok(()));
-                        }
-                        self.local_frame += 1;
-                    } else {
+            // BREATHING MANDALA
+            if self.frame_count >= BREATHING_A && self.frame_count < BREATHING_B {
+                self.mandala_on = false;
+                match self.muse_model.display_type {
+                    DisplayType::Mandala => {
+                        //self.draw_mandala(seconds_since_start, self.mandala_on, window);
+                        // println!("Breathing block!");
+                        self.draw_breath_mandala(current_time, window);
                         self.mandala_on = true;
-                        //println!("ELSE: {}", self.local_frame);
-                        self.local_frame *= 0;
-                        self.image_index_positive += 1 as usize;
+                        self.local_frame = 0;
                     }
+                    _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
                 }
+            };
 
-                _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
-            }
-        };
+            // POSITIIVE_MANDALA
+            if self.frame_count >= POSITIVE_A && self.frame_count < POSITIVE_B {
+                match self.muse_model.display_type {
+                    DisplayType::Mandala => {
+                        self.draw_mandala(seconds_since_start, self.mandala_on, window);
+                        if self.local_frame < IMAGE_DURATION_FRAMES {
+                            if self.local_frame == 0 {
+                                self.log_result(current_time, "LocalFrame:POSITIVE", Ok(()));
+                            }
+                            self.positive_images.draw(self.image_index_positive, window);
+                            self.local_frame += 1;
+                        } else if self.local_frame < IMAGE_DURATION_FRAMES + INTER_IMAGE_INTERVAL {
+                            if self.local_frame == IMAGE_DURATION_FRAMES {
+                                self.log_result(current_time, "LocalFrame:END_POSITIVE", Ok(()));
+                            }
+                            self.local_frame += 1;
+                        } else {
+                            self.mandala_on = true;
+                            //println!("ELSE: {}", self.local_frame);
+                            self.local_frame *= 0;
+                            self.image_index_positive += 1 as usize;
+                        }
+                    }
 
-        // FREE_RIDE MANDALA
-        if self.frame_count >= FREE_RIDE_A && self.frame_count < THANK_YOU {
-            match self.muse_model.display_type {
-                DisplayType::Mandala => {
-                    self.draw_mandala(seconds_since_start, self.mandala_on, window);
+                    _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
                 }
-                _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
+            };
+
+            // FREE_RIDE MANDALA
+            if self.frame_count >= FREE_RIDE_A && self.frame_count < THANK_YOU {
+                match self.muse_model.display_type {
+                    DisplayType::Mandala => {
+                        self.draw_mandala(seconds_since_start, self.mandala_on, window);
+                    }
+                    _ => eeg_view::draw_view(&self.muse_model, window, &mut self.eeg_view_state),
+                }
             }
+
+            //         // LEFT BUTTON
+            //         let left_color = self.left_button_color;
+            //         self.sound_click.execute(|_| {
+            //             window.draw(&RECT_LEFT_BUTTON, Col(left_color));
+            //             Ok(())
+            //         })?;
+            //         self.left_button_color = COLOR_BUTTON;
+
+            //         // RIGHT BUTTON
+            //         let right_color = self.right_button_color;
+            //         self.sound_click.execute(|_| {
+            //             window.draw(&RECT_RIGHT_BUTTON, Col(right_color));
+            //             Ok(())
+            //         })?;
+            //         self.right_button_color = COLOR_BUTTON;
+            //     } else {
+            //         // LOGO
+            //         self.logo.execute(|image| {
+            //             window.draw(
+            //                 &image
+            //                     .area()
+            //                     .with_center((SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 2.0)),
+            //                 Img(&image),
+            //             );
+            //             Ok(())
+            //         })?;
+            //     }
         }
 
-        //         // LEFT BUTTON
-        //         let left_color = self.left_button_color;
-        //         self.sound_click.execute(|_| {
-        //             window.draw(&RECT_LEFT_BUTTON, Col(left_color));
-        //             Ok(())
-        //         })?;
-        //         self.left_button_color = COLOR_BUTTON;
-
-        //         // RIGHT BUTTON
-        //         let right_color = self.right_button_color;
-        //         self.sound_click.execute(|_| {
-        //             window.draw(&RECT_RIGHT_BUTTON, Col(right_color));
-        //             Ok(())
-        //         })?;
-        //         self.right_button_color = COLOR_BUTTON;
-        //     } else {
-        //         // LOGO
-        //         self.logo.execute(|image| {
-        //             window.draw(
-        //                 &image
-        //                     .area()
-        //                     .with_center((SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 2.0)),
-        //                 Img(&image),
-        //             );
-        //             Ok(())
-        //         })?;
-        //     }
-
-        self.frame_count = self.frame_count + 1;
-        if self.frame_count == std::u64::MAX {
-            self.frame_count = 1;
+        if self.muse_model.is_receiving_data() || self.frame_count < TITLE {
+            self.frame_count = self.frame_count + 1;
+            if self.frame_count == std::u64::MAX {
+                self.frame_count = 1;
+            }
         }
 
         Ok(())

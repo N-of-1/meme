@@ -90,7 +90,7 @@ pub enum MuseMessageType {
     JawClench { clench: bool },
 }
 
-pub type TimedMuseMessage = (DateTime<Local>, MuseMessageType);
+type TimedMuseMessage = (DateTime<Local>, MuseMessageType);
 
 #[derive(Clone, Debug)]
 pub struct MuseMessage {
@@ -545,7 +545,7 @@ fn create_async_gamma_log_writer(
 pub struct MuseModel {
     most_recent_message_receive_time: DateTime<Local>,
     pub inner_receiver: inner_receiver::InnerMessageReceiver,
-    tx_eeg: Sender<TimedMuseMessage>,
+    receiving_data: bool,
     accelerometer: [f32; 3],
     gyro: [f32; 3],
     pub alpha: [f32; 4],
@@ -596,11 +596,9 @@ where
 
 impl MuseModel {
     /// Create a new model for storing received values
-    pub fn new(start_time: DateTime<Local>) -> (Receiver<TimedMuseMessage>, MuseModel) {
-        let (tx_eeg, rx_eeg): (Sender<TimedMuseMessage>, Receiver<TimedMuseMessage>) =
-            mpsc::channel();
-
+    pub fn new(start_time: DateTime<Local>) -> MuseModel {
         let inner_receiver = inner_receiver::InnerMessageReceiver::new();
+        let receiving_data = false;
         let eeg_log_sender = create_async_eeg_log_writer(
             start_time,
             "eeg.csv",
@@ -634,45 +632,47 @@ impl MuseModel {
             .write_record(&["Time", "Record"])
             .expect("Can not write other.csv header");
 
-        (
-            rx_eeg,
-            MuseModel {
-                most_recent_message_receive_time: start_time,
-                inner_receiver,
-                tx_eeg,
-                accelerometer: [0.0, 0.0, 0.0],
-                gyro: [0.0, 0.0, 0.0],
-                alpha: [0.0, 0.0, 0.0, 0.0], // 7.5-13Hz
-                beta: [0.0, 0.0, 0.0, 0.0],  // 13-30Hz
-                gamma: [0.0, 0.0, 0.0, 0.0], // 30-44Hz
-                delta: [0.0, 0.0, 0.0, 0.0], // 1-4Hz
-                theta: [0.0, 0.0, 0.0, 0.0], // 4-8Hz
-                batt: 0,
-                horseshoe: [0.0, 0.0, 0.0, 0.0],
-                blink_countdown: 0,
-                touching_forehead_countdown: 0,
-                jaw_clench_countdown: 0,
-                scale: 1.5, // Make the circles relatively larger or smaller
-                display_type: DisplayType::Mandala, // Current drawing mode
-                arousal: NormalizedValue::new(),
-                valence: NormalizedValue::new(),
-                eeg_log_sender,
-                alpha_log_sender,
-                beta_log_sender,
-                gamma_log_sender,
-                delta_log_writer,
-                theta_log_writer,
-                other_log_writer,
-            },
-        )
+        MuseModel {
+            most_recent_message_receive_time: start_time,
+            inner_receiver,
+            receiving_data,
+            accelerometer: [0.0, 0.0, 0.0],
+            gyro: [0.0, 0.0, 0.0],
+            alpha: [0.0, 0.0, 0.0, 0.0], // 7.5-13Hz
+            beta: [0.0, 0.0, 0.0, 0.0],  // 13-30Hz
+            gamma: [0.0, 0.0, 0.0, 0.0], // 30-44Hz
+            delta: [0.0, 0.0, 0.0, 0.0], // 1-4Hz
+            theta: [0.0, 0.0, 0.0, 0.0], // 4-8Hz
+            batt: 0,
+            horseshoe: [0.0, 0.0, 0.0, 0.0],
+            blink_countdown: 0,
+            touching_forehead_countdown: 0,
+            jaw_clench_countdown: 0,
+            scale: 1.5, // Make the circles relatively larger or smaller
+            display_type: DisplayType::Mandala, // Current drawing mode
+            arousal: NormalizedValue::new(),
+            valence: NormalizedValue::new(),
+            eeg_log_sender,
+            alpha_log_sender,
+            beta_log_sender,
+            gamma_log_sender,
+            delta_log_writer,
+            theta_log_writer,
+            other_log_writer,
+        }
+    }
+
+    /// Valid measurements are flowing from the EEG headset
+    pub fn is_receiving_data(&self) -> bool {
+        self.receiving_data
     }
 
     /// Write any pending activity to disk
-    pub fn flush_all(&mut self) {
-        //TODO How do we close the async channels like alpha writer elegantly?
-        let mut _r = self.theta_log_writer.flush();
-        _r = self.delta_log_writer.flush();
-        _r = self.other_log_writer.flush();
+    pub fn flush_all(&mut self) -> Result<(), std::io::Error> {
+        self.theta_log_writer
+            .flush()
+            .and(self.delta_log_writer.flush())
+            .and(self.other_log_writer.flush())
     }
 
     fn log_delta(&mut self, receive_time: DateTime<Local>) {
@@ -762,6 +762,7 @@ impl MuseModel {
         }
 
         if updated_numeric_values {
+            self.receiving_data = true;
             let _valence_updated = self.update_valence();
             let _arousal_updated = self.update_arousal();
             let vma = self.valence.moving_average();
@@ -807,21 +808,18 @@ impl MuseModel {
     fn handle_muse_message(
         &mut self,
         muse_message: MuseMessage,
-    ) -> Result<bool, SendError<(DateTime<Local>, MuseMessageType)>> {
+    ) -> Result<bool, SendError<TimedMuseMessage>> {
         let message_time = muse_message.message_time;
 
         match muse_message.muse_message_type {
             MuseMessageType::Accelerometer { x, y, z } => {
                 self.accelerometer = [x, y, z];
-                let _success = self
-                    .tx_eeg
-                    .send((message_time, MuseMessageType::Accelerometer { x, y, z }));
+                self.log_other(message_time, &format!("Accel, {:?}, {:?}, {:?}", x, y, z));
                 Ok(false)
             }
             MuseMessageType::Gyro { x, y, z } => {
                 self.gyro = [x, y, z];
                 self.log_other(message_time, &format!("Gyro, {:?}, {:?}, {:?}", x, y, z));
-                // self.send((time, MuseMessageType::Gyro { x, y, z }));
                 Ok(false)
             }
             MuseMessageType::Horseshoe { a, b, c, d } => {
@@ -863,21 +861,16 @@ impl MuseModel {
             MuseMessageType::Delta { a, b, c, d } => {
                 self.delta = [a, b, c, d];
                 self.log_delta(message_time);
-                // println!("Delta {} {} {} {}", a, b, c, d);
-                // self.send((time, MuseMessageType::Delta { a, b, c, d }));
                 Ok(true)
             }
             MuseMessageType::Theta { a, b, c, d } => {
                 self.theta = [a, b, c, d];
                 self.log_theta(message_time);
-                // println!("Theta {} {} {} {}", a, b, c, d);
-                // self.send((time, MuseMessageType::Theta { a, b, c, d }));
                 Ok(true)
             }
             MuseMessageType::Batt { batt } => {
                 self.batt = batt;
                 self.log_other(message_time, &format!("Battery, {:?}", batt));
-                // self.send((muse_message.time, MuseMessageType::Batt { batt }));
                 Ok(false)
             }
             MuseMessageType::TouchingForehead { touch } => {
@@ -888,7 +881,6 @@ impl MuseModel {
                     self.touching_forehead_countdown = FOREHEAD_COUNTDOWN;
                 };
                 self.log_other(message_time, &format!("Battery, {:?}", i));
-                //                self.send((time, MuseMessageType::TouchingForehead { touch }));
                 Ok(false)
             }
             MuseMessageType::Blink { blink } => {
