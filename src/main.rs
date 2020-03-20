@@ -329,14 +329,14 @@ fn bound_normalized_value(normalized: f32) -> f32 {
 mod max_thread_priority {
     pub fn maximize_current_thread_priority() {
         let thread_id = thread_priority::thread_native_id();
-        let _r = thread_priority::set_thread_priority(
+        let _ = thread_priority::set_thread_priority(
             thread_id,
             thread_priority::ThreadPriority::Max,
             thread_priority::ThreadSchedulePolicy::Normal(
                 thread_priority::NormalThreadSchedulePolicy::Normal,
-            )
-            .expect("Could not maximize thread priority"),
-        );
+            ),
+        )
+        .expect("Could not maximize thread priority");
     }
 }
 
