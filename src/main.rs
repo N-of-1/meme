@@ -38,6 +38,7 @@ use quicksilver::{
     sound::Sound,
     Future, Result,
 };
+use std::f32::consts::PI;
 
 mod eeg_view;
 mod muse_model;
@@ -220,7 +221,7 @@ struct AppState {
     sound_e5: Asset<Sound>,
     sound_e6: Asset<Sound>,
     sound_e7: Asset<Sound>,
-    sound_e9: Asset<Sound>,
+    sound_e8: Asset<Sound>,
     help_1: Asset<Image>,
     help_2: Asset<Image>,
     help_3: Asset<Image>,
@@ -245,8 +246,7 @@ struct AppState {
 }
 
 fn breathing_sinusoid_10sec(current_time: f32) -> f32 {
-    let pi: f32 = std::f32::consts::PI;
-    let sin: f32 = (current_time * 0.2f32 * pi).sin();
+    let sin: f32 = (current_time * 0.2f32 * PI).sin();
     sin / 2.0f32 + 0.5f32
 }
 
@@ -283,7 +283,6 @@ impl AppState {
 
     /// Draw the current animated state of a flower-like object to the window
     fn draw_mandala(&mut self, seconds_since_start: f32, mandala_on: bool, window: &mut Window) {
-        //TODO Pass in seconds_since_start as an argument
         if !mandala_on {
             return;
         }
@@ -335,7 +334,8 @@ mod max_thread_priority {
             thread_priority::ThreadPriority::Max,
             thread_priority::ThreadSchedulePolicy::Normal(
                 thread_priority::NormalThreadSchedulePolicy::Normal,
-            ),
+            )
+            .expect("Could not maximize thread priority"),
         );
     }
 }
@@ -343,7 +343,7 @@ mod max_thread_priority {
 #[cfg(not(target_os = "linux"))]
 mod max_thread_priority {
     pub fn maximize_current_thread_priority() {
-        // Do nothing- function not currently available
+        // Do nothing- thread priority override is not currently supported on this platform
     }
 }
 
@@ -371,7 +371,7 @@ impl State for AppState {
         let sound_e5 = Asset::new(Sound::load("F5.mp3"));
         let sound_e6 = Asset::new(Sound::load("F6.mp3"));
         let sound_e7 = Asset::new(Sound::load("F7.mp3"));
-        let sound_e9 = Asset::new(Sound::load("F9.mp3"));
+        let sound_e8 = Asset::new(Sound::load("F8.mp3"));
 
         let help_1 = Asset::new(Image::load("1fi.png"));
         let help_2 = Asset::new(Image::load("2fi.png"));
@@ -475,7 +475,7 @@ impl State for AppState {
             sound_e5,
             sound_e6,
             sound_e7,
-            sound_e9,
+            sound_e8,
             help_1,
             help_2,
             help_3,
@@ -656,7 +656,7 @@ impl State for AppState {
                 self.log_result(current_time, "Sound:POSITIVE_B", result);
             }
             if self.frame_count == THANK_YOU {
-                let result = self.sound_e9.execute(|sound| sound.play());
+                let result = self.sound_e8.execute(|sound| sound.play());
                 self.log_result(current_time, "Sound:THANK_YOU", result);
             }
 
