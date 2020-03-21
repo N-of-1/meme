@@ -38,6 +38,7 @@ use quicksilver::{
     sound::Sound,
     Future, Result,
 };
+use std::f32::consts::PI;
 
 mod eeg_view;
 mod muse_model;
@@ -220,7 +221,7 @@ struct AppState {
     sound_e5: Asset<Sound>,
     sound_e6: Asset<Sound>,
     sound_e7: Asset<Sound>,
-    sound_e9: Asset<Sound>,
+    sound_e8: Asset<Sound>,
     help_1: Asset<Image>,
     help_2: Asset<Image>,
     help_3: Asset<Image>,
@@ -245,8 +246,7 @@ struct AppState {
 }
 
 fn breathing_sinusoid_10sec(current_time: f32) -> f32 {
-    let pi: f32 = std::f32::consts::PI;
-    let sin: f32 = (current_time * 0.2f32 * pi).sin();
+    let sin: f32 = (current_time * 0.2f32 * PI).sin();
     sin / 2.0f32 + 0.5f32
 }
 
@@ -283,7 +283,6 @@ impl AppState {
 
     /// Draw the current animated state of a flower-like object to the window
     fn draw_mandala(&mut self, seconds_since_start: f32, mandala_on: bool, window: &mut Window) {
-        //TODO Pass in seconds_since_start as an argument
         if !mandala_on {
             return;
         }
@@ -330,20 +329,21 @@ fn bound_normalized_value(normalized: f32) -> f32 {
 mod max_thread_priority {
     pub fn maximize_current_thread_priority() {
         let thread_id = thread_priority::thread_native_id();
-        let _r = thread_priority::set_thread_priority(
+        let _ = thread_priority::set_thread_priority(
             thread_id,
             thread_priority::ThreadPriority::Max,
             thread_priority::ThreadSchedulePolicy::Normal(
                 thread_priority::NormalThreadSchedulePolicy::Normal,
             ),
-        );
+        )
+        .expect("Could not maximize thread priority");
     }
 }
 
 #[cfg(not(target_os = "linux"))]
 mod max_thread_priority {
     pub fn maximize_current_thread_priority() {
-        // Do nothing- function not currently available
+        // Do nothing- thread priority override is not currently supported on this platform
     }
 }
 
@@ -364,23 +364,23 @@ impl State for AppState {
 
         let logo = Asset::new(Image::load(IMAGE_LOGO));
         let sound_click = Asset::new(Sound::load(SOUND_CLICK));
-        let sound_e1 = Asset::new(Sound::load("E1.mp3"));
-        let sound_e2 = Asset::new(Sound::load("E2.mp3"));
-        let sound_e3 = Asset::new(Sound::load("E3.mp3"));
-        let sound_e4 = Asset::new(Sound::load("E4.mp3"));
-        let sound_e5 = Asset::new(Sound::load("E5.mp3"));
-        let sound_e6 = Asset::new(Sound::load("E6.mp3"));
-        let sound_e7 = Asset::new(Sound::load("E7.mp3"));
-        let sound_e9 = Asset::new(Sound::load("E9.mp3"));
+        let sound_e1 = Asset::new(Sound::load("F1.mp3"));
+        let sound_e2 = Asset::new(Sound::load("F2.mp3"));
+        let sound_e3 = Asset::new(Sound::load("F3.mp3"));
+        let sound_e4 = Asset::new(Sound::load("F4.mp3"));
+        let sound_e5 = Asset::new(Sound::load("F5.mp3"));
+        let sound_e6 = Asset::new(Sound::load("F6.mp3"));
+        let sound_e7 = Asset::new(Sound::load("F7.mp3"));
+        let sound_e8 = Asset::new(Sound::load("F8.mp3"));
 
-        let help_1 = Asset::new(Image::load("1.png"));
-        let help_2 = Asset::new(Image::load("2.png"));
-        let help_3 = Asset::new(Image::load("3.png"));
-        let help_4 = Asset::new(Image::load("4.png"));
-        let help_5 = Asset::new(Image::load("5.png"));
-        let help_6 = Asset::new(Image::load("6.png"));
-        let help_7 = Asset::new(Image::load("7.png"));
-        let help_8 = Asset::new(Image::load("8.png"));
+        let help_1 = Asset::new(Image::load("1fi.png"));
+        let help_2 = Asset::new(Image::load("2fi.png"));
+        let help_3 = Asset::new(Image::load("3fi.png"));
+        let help_4 = Asset::new(Image::load("4fi.png"));
+        let help_5 = Asset::new(Image::load("5fi.png"));
+        let help_6 = Asset::new(Image::load("6fi.png"));
+        let help_7 = Asset::new(Image::load("7fi.png"));
+        let help_8 = Asset::new(Image::load("8fi.png"));
 
         let muse_model = muse_model::MuseModel::new(start_date_time);
         let mandala_valence_state_open = MandalaState::new(
@@ -475,7 +475,7 @@ impl State for AppState {
             sound_e5,
             sound_e6,
             sound_e7,
-            sound_e9,
+            sound_e8,
             help_1,
             help_2,
             help_3,
@@ -656,7 +656,7 @@ impl State for AppState {
                 self.log_result(current_time, "Sound:POSITIVE_B", result);
             }
             if self.frame_count == THANK_YOU {
-                let result = self.sound_e9.execute(|sound| sound.play());
+                let result = self.sound_e8.execute(|sound| sound.play());
                 self.log_result(current_time, "Sound:THANK_YOU", result);
             }
 
