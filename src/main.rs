@@ -325,21 +325,11 @@ fn bound_normalized_value(normalized: f32) -> f32 {
     normalized.max(3.0).min(-3.0)
 }
 
-mod max_thread_priority {
-    use thread_priority::set_current_thread_priority;
-
-    pub fn maximize_current_thread_priority() {
-        // Ignore the response- we just keep going even if priorty can not be boosted on a given platform
-        let _ = set_current_thread_priority(thread_priority::ThreadPriority::Max);
-    }
+/// Boost the UI thread to increase smoothness at the expense of background tasks
+fn maximize_current_thread_priority() {
+    // Ignore the response- we just keep going even if priorty can not be boosted on a given platform
+    let _ = thread_priority::set_current_thread_priority(thread_priority::ThreadPriority::Max);
 }
-
-// #[cfg(not(target_os = "linux"))]
-// mod max_thread_priority {
-//     pub fn maximize_current_thread_priority() {
-//         // Do nothing- thread priority override is not currently supported on this platform
-//     }
-// }
 
 impl State for AppState {
     fn new() -> Result<AppState> {
@@ -452,7 +442,7 @@ impl State for AppState {
         let local_frame: u64 = 0;
         let mandala_on = true;
 
-        max_thread_priority::maximize_current_thread_priority();
+        maximize_current_thread_priority();
 
         Ok(AppState {
             frame_count: 0,
