@@ -325,27 +325,21 @@ fn bound_normalized_value(normalized: f32) -> f32 {
     normalized.max(3.0).min(-3.0)
 }
 
-#[cfg(target_os = "linux")]
 mod max_thread_priority {
+    use thread_priority::set_current_thread_priority;
+
     pub fn maximize_current_thread_priority() {
-        let thread_id = thread_priority::thread_native_id();
-        let _ = thread_priority::set_thread_priority(
-            thread_id,
-            thread_priority::ThreadPriority::Max,
-            thread_priority::ThreadSchedulePolicy::Normal(
-                thread_priority::NormalThreadSchedulePolicy::Normal,
-            ),
-        )
-        .expect("Could not maximize thread priority");
+        let _ = set_current_thread_priority(thread_priority::ThreadPriority::Max)
+            .expect("Could not maximize thread priority");
     }
 }
 
-#[cfg(not(target_os = "linux"))]
-mod max_thread_priority {
-    pub fn maximize_current_thread_priority() {
-        // Do nothing- thread priority override is not currently supported on this platform
-    }
-}
+// #[cfg(not(target_os = "linux"))]
+// mod max_thread_priority {
+//     pub fn maximize_current_thread_priority() {
+//         // Do nothing- thread priority override is not currently supported on this platform
+//     }
+// }
 
 impl State for AppState {
     fn new() -> Result<AppState> {

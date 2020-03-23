@@ -2904,11 +2904,11 @@ dependencies = [
 
 [[package]]
 name = "thread-priority"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52c084e908948709a7f7f6d44b5368e0134aa322e0e569431a92c989bf855188"
+version = "0.2.0"
+source = "git+https://github.com/paulirotta/thread-priority.git#c48db780664cb5c47971a63a3d8932cb3b5331b9"
 dependencies = [
  "libc",
+ "winapi 0.3.8",
 ]
 
 [[package]]
