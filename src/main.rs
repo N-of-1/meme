@@ -329,8 +329,8 @@ mod max_thread_priority {
     use thread_priority::set_current_thread_priority;
 
     pub fn maximize_current_thread_priority() {
-        let _ = set_current_thread_priority(thread_priority::ThreadPriority::Max)
-            .expect("Could not maximize thread priority");
+        // Ignore the response- we just keep going even if priorty can not be boosted on a given platform
+        let _ = set_current_thread_priority(thread_priority::ThreadPriority::Max);
     }
 }
 

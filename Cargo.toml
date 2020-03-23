@@ -14,7 +14,7 @@ svg = "0.6"
 log4rs = "0.10"
 csv = "1.1"
 chrono = "0.4"
-thread-priority = {git = "https://github.com/paulirotta/thread-priority.git"}
+thread-priority = {git = "https://github.com/paulirotta/thread-priority.git", branch = "macos"}
 
 # Uncomment this block unless targeting ARM
 quicksilver = {git = "https://github.com/paulirotta/quicksilver.git", branch = "image_fix_and_add"}
