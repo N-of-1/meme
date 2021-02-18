@@ -15,7 +15,6 @@ log4rs = "0.10"
 csv = "1.1"
 chrono = "0.4"
 
-
 # Uncomment this block unless targeting ARM
 quicksilver = {git = "https://github.com/paulirotta/quicksilver.git", branch = "modified-version-0.3"}
 mandala = {git = "https://github.com/N-of-1/mandala.git", branch = "k-demo"}
